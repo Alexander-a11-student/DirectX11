@@ -401,7 +401,7 @@ bool RenderManager::Render()
 	m_Direct3D->GetProjectionMatrix(projectionMatrix);
 
 	UpdatePlanets();
-	//UpdateCamera();
+	UpdateCamera();
 
 	for (int i = 0; i < 1000; i++)
 	{
