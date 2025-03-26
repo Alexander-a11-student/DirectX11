@@ -141,6 +141,12 @@
     <Image Include="Sun.tga">
       <Filter>Source Files\Images</Filter>
     </Image>
+    <Image Include="MyBarrel.tga">
+      <Filter>Source Files\Images</Filter>
+    </Image>
+    <Image Include="barrel_BaseColor.tga">
+      <Filter>Source Files\Images</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="PixelShader.hlsl">
@@ -185,6 +191,9 @@
       <Filter>Source Files\Models\Planets</Filter>
     </Text>
     <Text Include="sphere3.txt">
+      <Filter>Source Files\Models\Planets</Filter>
+    </Text>
+    <Text Include="Barrel.txt">
       <Filter>Source Files\Models\Planets</Filter>
     </Text>
   </ItemGroup>

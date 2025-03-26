@@ -89,8 +89,10 @@ private:
 	TextureShaderClass* m_TextureShader;
 
 	//Lab3
-	ModelClass* Planet[1000];
+	ModelClass* Planet[100];
 	float timeGame = 0.0f;
+
+	ModelClass* Barrel;
 
 	//ModelClass* Planet2[10];
 

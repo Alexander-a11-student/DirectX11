@@ -161,10 +161,12 @@
     <ResourceCompile Include="Engine4.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="barrel_BaseColor.tga" />
     <Image Include="Border2.tga" />
     <Image Include="Circle2.tga" />
     <Image Include="Engine4.ico" />
     <Image Include="Luna2.tga" />
+    <Image Include="MyBarrel.tga" />
     <Image Include="small.ico" />
     <Image Include="Sun.tga" />
     <Image Include="TexturePlanet2.tga" />
@@ -188,6 +190,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Text Include="Barrel.txt" />
     <Text Include="Border1.txt" />
     <Text Include="Boll.txt" />
     <Text Include="Border2.txt" />
