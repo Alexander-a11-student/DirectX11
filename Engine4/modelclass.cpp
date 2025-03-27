@@ -114,7 +114,7 @@ bool ModelClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCon
 {
 	bool result;
 
-	//GenerateSphereModel(7, 7, 1.0f, "sphere.txt");
+	//GenerateSphereModel(7, 7, 0.18f, "sphere.txt");
 	//GenerateSphereModel(20, 20, 0.25f, "sphere2.txt");
 	//GenerateSphereModel(20, 20, 2.0f, "sphere3.txt");
 

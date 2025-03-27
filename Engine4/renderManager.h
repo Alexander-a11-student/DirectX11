@@ -59,6 +59,8 @@ public:
 
 	void MoveBarrelForward();
 	void MoveBarrelBackward();
+	void MoveBarrelLeft();
+	void MoveBarrelRight();
 
 	bool isCameraFixed = false;
 	int fixedPlanetIndex = -1;
@@ -82,8 +84,12 @@ private:
 	float timeGame = 0.0f;
 
 	ModelClass* Barrel;
+
 	bool isMovingForward = false;
 	bool isMovingBackward = false;
+	bool isMovingLeft = false;
+	bool isMovingRight = false;
+
 	float rotationAngle = 0.0f;
 
 };

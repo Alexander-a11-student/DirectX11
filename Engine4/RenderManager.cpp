@@ -134,6 +134,45 @@ void RenderManager::MoveBarrelBackward()
 	//m_Camera->SetLookAt(position.x, position.y, position.z);
 }
 
+void RenderManager::MoveBarrelLeft()
+{
+	// Устанавливаем флаг, что бочка движется влево
+	isMovingLeft = true;
+
+	// Поворот бочки на 90 градусов влево
+	XMMATRIX rotationMatrix = XMMatrixRotationY(XMConvertToRadians(-90.0f));
+	Barrel->SetRotationMatrix(rotationMatrix);
+
+	// Перемещение бочки влево
+	XMFLOAT3 position = Barrel->GetPosition();
+	position.x -= 0.1f;
+	Barrel->SetPosition(position.x, position.y, position.z);
+
+	// Обновление позиции камеры
+	m_Camera->SetPosition(position.x - 0.5f, position.y + 3.0f, position.z - 4.0f);
+}
+
+void RenderManager::MoveBarrelRight()
+{
+	// Устанавливаем флаг, что бочка движется вправо
+	isMovingRight = true;
+
+	// Поворот бочки на 90 градусов вправо
+	XMMATRIX rotationMatrix = XMMatrixRotationY(XMConvertToRadians(90.0f));
+	Barrel->SetRotationMatrix(rotationMatrix);
+
+	// Перемещение бочки вправо
+	XMFLOAT3 position = Barrel->GetPosition();
+	position.x += 0.1f;
+	Barrel->SetPosition(position.x, position.y, position.z);
+
+	// Обновление позиции камеры
+	m_Camera->SetPosition(position.x - 0.5f, position.y + 3.0f, position.z - 4.0f);
+}
+
+
+
+
 //Перемещение
 //lab3 
 
@@ -330,15 +369,16 @@ bool RenderManager::Render()
 		// Поворот бочки на 90 градусов вокруг оси Z
 		XMMATRIX initialRotation = XMMatrixRotationZ(XMConvertToRadians(90.0f));
 
-		// Вращение бочки вокруг своей оси, если она движется вперед
-		if (isMovingForward || isMovingBackward)
+		// Вращение бочки вокруг своей оси, если она движется вперед, назад, влево или вправо
+		if (isMovingForward || isMovingBackward || isMovingLeft || isMovingRight)
 		{
-	
-			rotationAngle += (isMovingForward ? 0.1f : -0.1f);
+			rotationAngle += (isMovingForward || isMovingRight ? -0.1f : -0.1f);
 			XMMATRIX rotationMatrix = XMMatrixRotationY(rotationAngle); // Вращение вокруг оси Z
 			initialRotation = XMMatrixMultiply(rotationMatrix, initialRotation);
 			isMovingForward = false; // Сбрасываем флаг
 			isMovingBackward = false; // Сбрасываем флаг
+			isMovingLeft = false; // Сбрасываем флаг
+			isMovingRight = false; // Сбрасываем флаг
 		}
 
 		XMMATRIX modelMatrix = XMMatrixMultiply(initialRotation, translationMatrix);

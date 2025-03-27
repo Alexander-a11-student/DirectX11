@@ -46,6 +46,12 @@ bool Game::Initialize()
 		return false;
 	}
 
+	// ќграничиваем курсор мыши в пределах окна приложени€
+	RECT rect;
+	GetClientRect(m_hwnd, &rect);
+	MapWindowPoints(m_hwnd, nullptr, (POINT*)&rect, 2);
+	ClipCursor(&rect);
+
 	return true;
 }
 
@@ -58,6 +64,9 @@ void Game::Exit()
 
 void Game::Shutdown()
 {
+	// —брасываем ограничение курсора мыши
+	ClipCursor(nullptr);
+
 	if (m_RenderManager)
 	{
 		m_RenderManager->Shutdown();
@@ -152,6 +161,12 @@ LRESULT CALLBACK Game::MessageHandler(HWND hwnd, UINT umsg, WPARAM wparam, LPARA
 		}
 		if (m_Input->IsKeyDown(0x53)) { // S
 			m_RenderManager->MoveBarrelBackward();
+		}
+		if (m_Input->IsKeyDown(0x41)) { // A
+			m_RenderManager->MoveBarrelLeft();
+		}
+		if (m_Input->IsKeyDown(0x44)) { // D
+			m_RenderManager->MoveBarrelRight();
 		}
 
 
