@@ -58,7 +58,7 @@ public:
 	void MoveBarrelLeft();
 	void MoveBarrelRight();
 
-
+	void UpdatePlanet();
 
 	
 
@@ -82,6 +82,9 @@ private:
 	bool isMovingRight = false;
 
 	float rotationAngle = 0.0f;
+	float currentAngle = 0.0f;
+
+	float planetRotationAngle = 0.0f;
 
 };
 

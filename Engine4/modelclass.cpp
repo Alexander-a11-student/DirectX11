@@ -389,10 +389,14 @@ bool ModelClass::CheckCollision(ModelClass* other) {
 	XMFLOAT3 otherPos = other->GetPosition();
 	XMFLOAT3 otherSize = other->GetSize();
 
-	return (abs(m_position.x - otherPos.x) < (m_size.x / 2 + otherSize.x / 2)) &&
+	// Добавляем смещение по оси X для корректировки
+	float collisionOffsetX = -0.5f; // подберите значение по необходимости
+
+	return (abs((m_position.x + collisionOffsetX) - otherPos.x) < (m_size.x / 2 + otherSize.x / 2)) &&
 		(abs(m_position.y - otherPos.y) < (m_size.y / 2 + otherSize.y / 2)) &&
 		(abs(m_position.z - otherPos.z) < (m_size.z / 2 + otherSize.z / 2));
 }
+
 
 
 

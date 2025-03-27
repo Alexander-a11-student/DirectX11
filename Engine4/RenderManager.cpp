@@ -70,6 +70,7 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 		float x = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 100.0f - 50.0f;
 		float z = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 100.0f - 50.0f;
 		Planet[i]->SetPosition(x, 0.0f, z);
+		Planet[i]->SetSize(0.1f, 0.1f, 0.1f);
 	}
 
 
@@ -83,6 +84,7 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 
 
 	Barrel->SetPosition(0.0f, 0.0f, 0.0f);
+	Barrel->SetSize(1.1f, 1.0f, 1.1f);
 
 	m_TextureShader = new TextureShaderClass;
 	result = m_TextureShader->Initialize(m_Direct3D->GetDevice(), hwnd);
@@ -261,6 +263,47 @@ void RenderManager::UpdateMouseMovement(int deltaX, int deltaY)
 
 
 
+void RenderManager::UpdatePlanet()
+{
+	// ќпредел€ем скорость вращени€ (угол, на который смещение поворачиваетс€ каждый кадр)
+	const float rotationSpeed = 0.01f; // можно настроить под нужную скорость
+	rotationAngle += rotationSpeed;
+
+	// ƒл€ каждой планеты, котора€ прикреплена к бочке, обновл€ем позицию
+	for (int i = 0; i < 100; i++)
+	{
+		if (Planet[i]->IsAttached())
+		{
+			// ѕолучаем позицию бочки
+			XMFLOAT3 barrelPos = Barrel->GetPosition();
+
+			// ѕолучаем исходное смещение, записанное при столкновении
+			XMFLOAT3 offset = Planet[i]->GetOffset();
+
+			// ѕреобразуем offset в XMVECTOR
+			XMVECTOR offsetVector = XMLoadFloat3(&offset);
+
+			// —оздаем матрицу вращени€ вокруг оси Y (если требуетс€ друга€ ось Ч замените)
+			XMMATRIX rotationMatrix = XMMatrixRotationY(rotationAngle);
+
+			// ѕримен€ем вращение к offset
+			offsetVector = XMVector3Transform(offsetVector, rotationMatrix);
+
+			// ¬ычисл€ем новое смещение
+			XMFLOAT3 newOffset;
+			XMStoreFloat3(&newOffset, offsetVector);
+
+			// ќбновл€ем позицию планеты относительно текущей позиции бочки
+			Planet[i]->SetPosition(
+				barrelPos.x + newOffset.x,
+				barrelPos.y + newOffset.y,
+				barrelPos.z + newOffset.z
+			);
+		}
+	}
+}
+
+
 bool RenderManager::Render()
 {
 
@@ -277,9 +320,54 @@ bool RenderManager::Render()
 	m_Camera->GetViewMatrix(viewMatrix);
 	m_Direct3D->GetProjectionMatrix(projectionMatrix);
 
+	if (isMovingForward)
+	{
+		planetRotationAngle += 0.05f; // ѕри движении вперед увеличиваем угол
+	}
+	if (isMovingBackward)
+	{
+		planetRotationAngle -= 0.05f; // ѕри движении назад уменьшаем угол (обратное вращение)
+	}
 
 	for (int i = 0; i < 100; i++)
 	{
+		if (!Planet[i]->IsAttached() && Barrel->CheckCollision(Planet[i]))
+		{
+			// ѕри столкновении вычисл€ем смещение от бочки
+			XMFLOAT3 barrelPos = Barrel->GetPosition();
+			XMFLOAT3 planetPos = Planet[i]->GetPosition();
+			XMFLOAT3 offset = {
+				planetPos.x - barrelPos.x,
+				planetPos.y - barrelPos.y,
+				planetPos.z - barrelPos.z
+			};
+			Planet[i]->SetAttached(true);
+			// —охран€ем текущий глобальный угол как базовый дл€ этой планеты
+			Planet[i]->SetAttachmentBaseAngle(planetRotationAngle);
+			Planet[i]->SetOffset(offset);
+		}
+		else if (Planet[i]->IsAttached()) // ≈сли планета прикреплена Ц обновл€ем еЄ позицию с учетом вращени€
+		{
+			XMFLOAT3 barrelPos = Barrel->GetPosition();
+			XMFLOAT3 offset = Planet[i]->GetOffset();
+
+			// ¬ычисл€ем разницу между текущим глобальным углом и углом в момент присоединени€
+			float deltaAngle = planetRotationAngle - Planet[i]->GetAttachmentBaseAngle();
+
+			// ѕреобразуем offset с учетом вращени€ вокруг оси Y (можете изменить на нужную ось)
+			XMVECTOR offsetVector = XMLoadFloat3(&offset);
+			XMMATRIX rotationMat = XMMatrixRotationX(deltaAngle);
+			offsetVector = XMVector3Transform(offsetVector, rotationMat);
+			XMFLOAT3 newOffset;
+			XMStoreFloat3(&newOffset, offsetVector);
+
+			Planet[i]->SetPosition(
+				barrelPos.x + newOffset.x,
+				barrelPos.y + newOffset.y,
+				barrelPos.z + newOffset.z
+			);
+		}
+
 		if (Planet[i])
 		{
 			XMFLOAT3 localPosition = Planet[i]->GetPosition();
@@ -301,7 +389,6 @@ bool RenderManager::Render()
 	if (Barrel)
 	{
 		XMFLOAT3 localPosition = Barrel->GetPosition();
-
 		float x = localPosition.x;
 		float y = localPosition.y;
 		float z = localPosition.z;
@@ -311,30 +398,27 @@ bool RenderManager::Render()
 		// ѕоворот бочки на 90 градусов вокруг оси Z
 		XMMATRIX initialRotation = XMMatrixRotationZ(XMConvertToRadians(90.0f));
 
-		// ¬ращение бочки вокруг своей оси, если она движетс€ вперед, назад, влево или вправо
+		// ¬ращение бочки вокруг своей оси, если она движетс€
 		if (isMovingForward || isMovingBackward || isMovingLeft || isMovingRight)
 		{
 			if (isMovingForward) {
 				rotationAngle -= 0.1f;
 			}
-
 			if (isMovingBackward) {
 				rotationAngle += 0.1f;
 			}
-
 			if (isMovingLeft) {
 				rotationAngle -= 0.1f;
 			}
-
 			if (isMovingRight) {
 				rotationAngle -= 0.1f;
 			}
-			XMMATRIX rotationMatrix = XMMatrixRotationY(rotationAngle); // ¬ращение вокруг оси Z
+			XMMATRIX rotationMatrix = XMMatrixRotationY(rotationAngle); // ѕоворот вокруг оси Y (при необходимости замените ось)
 			initialRotation = XMMatrixMultiply(rotationMatrix, initialRotation);
-			isMovingForward = false; // —брасываем флаг
-			isMovingBackward = false; // —брасываем флаг
-			isMovingLeft = false; // —брасываем флаг
-			isMovingRight = false; // —брасываем флаг
+			isMovingForward = false;
+			isMovingBackward = false;
+			isMovingLeft = false;
+			isMovingRight = false;
 		}
 
 		XMMATRIX modelMatrix = XMMatrixMultiply(initialRotation, translationMatrix);

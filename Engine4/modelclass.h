@@ -66,6 +66,14 @@ public:
 	XMFLOAT3 GetPosition() { return m_position; }
 	XMFLOAT3 GetSize() { return m_size; }
 
+	bool IsAttached() const { return m_attached; }
+	void SetAttached(bool attached) { m_attached = attached; }
+	void SetOffset(const XMFLOAT3& offset) { m_offset = offset; }
+	XMFLOAT3 GetOffset() const { return m_offset; }
+
+	void SetAttachmentBaseAngle(float angle) { m_AttachmentBaseAngle = angle; }
+	float GetAttachmentBaseAngle() const { return m_AttachmentBaseAngle; }
+
 
 	XMMATRIX modelMatrix;
 
@@ -80,10 +88,13 @@ private:
 	bool LoadModel(char*);
 	void ReleaseModel();
 
+	float m_AttachmentBaseAngle = 0.0f;
 
 
 
 private:
+	bool m_attached = false;         // Флаг: прикреплена ли планета к бочке
+	XMFLOAT3 m_offset = { 0.0f, 0.0f, 0.0f }; // Смещение от бочки
 	//Lab3
 	XMMATRIX m_RotationMatrix; // Матрица вращения
 
