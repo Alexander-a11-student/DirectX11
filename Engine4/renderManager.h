@@ -52,20 +52,11 @@ public:
 	void RotateCameraDown();
 	void UpdateMouseMovement(int deltaX, int deltaY);
 
-	void UpdatePlanets();
-	void FixCameraToPlanet(int planetIndex);
-	void ReleaseCamera();
-	void UpdateCamera();
 
 	void MoveBarrelForward();
 	void MoveBarrelBackward();
 	void MoveBarrelLeft();
 	void MoveBarrelRight();
-
-	bool isCameraFixed = false;
-	int fixedPlanetIndex = -1;
-	XMFLOAT3 cameraOffset = XMFLOAT3(5.0f, 5.0f, 5.0f); // Смещение от планеты
-
 
 
 

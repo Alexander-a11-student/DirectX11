@@ -173,6 +173,20 @@ void RenderManager::MoveBarrelRight()
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //Перемещение
 //lab3 
 
@@ -247,78 +261,6 @@ void RenderManager::UpdateMouseMovement(int deltaX, int deltaY)
 
 
 
-
-
-
-void RenderManager::UpdatePlanets()
-{
-	for (int i = 0; i < 100; i++)
-	{
-		if (Planet[i])
-		{
-			float angle = timeGame * (0.5f + static_cast<float>(i) / 10.0f);
-			XMFLOAT3 position = Planet[i]->GetPosition();
-			float distance = sqrt(position.x * position.x + position.z * position.z);
-			float x = distance * cos(angle);
-			float z = distance * sin(angle);
-			Planet[i]->SetPosition(x, 0.0f, z);
-
-			float selfAngle = timeGame * 100.0f;
-			XMMATRIX rotationMatrix = XMMatrixRotationY(selfAngle);
-			Planet[i]->SetRotationMatrix(rotationMatrix);
-		}
-	}
-}
-
-void RenderManager::FixCameraToPlanet(int planetIndex)
-{
-	if (planetIndex >= 0 && planetIndex < 3) {
-		isCameraFixed = true;
-		fixedPlanetIndex = planetIndex;
-		m_Camera->SetLookAt(-90, -30, 0);
-	}
-}
-
-void RenderManager::ReleaseCamera()
-{
-	isCameraFixed = false;
-	fixedPlanetIndex = -1;
-	m_Camera->SetLookAt(0.0f, 0.0f, 1.0f);
-}
-
-void RenderManager::UpdateCamera()
-{
-	if (isCameraFixed && fixedPlanetIndex >= 0) {
-		XMFLOAT3 planetPos = Planet[fixedPlanetIndex]->GetPosition();
-
-		// Параметры орбиты камеры
-		float cameraOrbitRadius = 3.0f; // Расстояние камеры от планеты
-		float cameraOrbitSpeed = 0.2f;  // Скорость вращения камеры вокруг планеты
-
-		if (fixedPlanetIndex == 2) {
-			cameraOrbitRadius = 6.0f;
-		}
-
-		// Вычисление угла движения камеры
-		float cameraAngle = timeGame * cameraOrbitSpeed;
-
-		// Новая позиция камеры по орбите
-		float camX = planetPos.x + cameraOrbitRadius * cos(cameraAngle);
-		float camZ = planetPos.z + cameraOrbitRadius * sin(cameraAngle);
-		float camY = planetPos.y + 1.0f; // Немного выше планеты для лучшего обзора
-
-		// Установка позиции камеры
-		m_Camera->SetPosition(camX, camY, camZ);
-
-		//Поворачиваем камеру в сторону планеты
-	}
-}
-
-
-
-
-
-
 bool RenderManager::Render()
 {
 
@@ -372,7 +314,21 @@ bool RenderManager::Render()
 		// Вращение бочки вокруг своей оси, если она движется вперед, назад, влево или вправо
 		if (isMovingForward || isMovingBackward || isMovingLeft || isMovingRight)
 		{
-			rotationAngle += (isMovingForward || isMovingRight ? -0.1f : -0.1f);
+			if (isMovingForward) {
+				rotationAngle -= 0.1f;
+			}
+
+			if (isMovingBackward) {
+				rotationAngle += 0.1f;
+			}
+
+			if (isMovingLeft) {
+				rotationAngle -= 0.1f;
+			}
+
+			if (isMovingRight) {
+				rotationAngle -= 0.1f;
+			}
 			XMMATRIX rotationMatrix = XMMatrixRotationY(rotationAngle); // Вращение вокруг оси Z
 			initialRotation = XMMatrixMultiply(rotationMatrix, initialRotation);
 			isMovingForward = false; // Сбрасываем флаг
