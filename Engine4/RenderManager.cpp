@@ -38,8 +38,8 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 	}
 
 	m_Camera = new CameraClass;
-	m_Camera->SetPosition(0.0f, 0.0f, 0.0f);
-	m_Camera->SetRotation(0.0f, 0.0f, 0.0f);
+	m_Camera->SetPosition(-0.5f, 3.0f, -4.0f); // Устанавливаем камеру над бочкой
+	m_Camera->SetRotation(45.0f, 0.0f, 0.0f); // Наклоняем камеру вниз
 
 	char modelFilenamePlanet[128];
 	strcpy_s(modelFilenamePlanet, "../Engine4/sphere.txt");
@@ -66,10 +66,9 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 			return false;
 		}
 
-		float angle = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * XM_2PI;
-		float distance = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 50.0f + 10.0f; ;
-		float x = distance * cos(angle);
-		float z = distance * sin(angle);
+		// Случайное распределение объектов Planet[i] по карте
+		float x = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 100.0f - 50.0f;
+		float z = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 100.0f - 50.0f;
 		Planet[i]->SetPosition(x, 0.0f, z);
 	}
 
@@ -81,6 +80,7 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 		MessageBox(hwnd, L"Could not initialize the barrel model object.", L"Error", MB_OK);
 		return false;
 	}
+
 
 	Barrel->SetPosition(0.0f, 0.0f, 0.0f);
 
@@ -101,95 +101,41 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 //}
 
 
+//Игра
+//lab4
+void RenderManager::MoveBarrelForward()
+{
+	// Устанавливаем флаг, что бочка движется вперед
+	isMovingForward = true;
 
+	// Перемещение бочки вперед
+	XMFLOAT3 position = Barrel->GetPosition();
+	position.z += 0.1f;
+	Barrel->SetPosition(position.x, position.y, position.z);
+
+	// Обновление позиции камеры
+	m_Camera->SetPosition(position.x - 0.5f, position.y + 3.0f, position.z - 4.0f);
+	//m_Camera->SetLookAt(position.x, position.y, position.z);
+}
+
+
+void RenderManager::MoveBarrelBackward()
+{
+	// Устанавливаем флаг, что бочка движется назад
+	isMovingBackward = true;
+
+	// Перемещение бочки назад
+	XMFLOAT3 position = Barrel->GetPosition();
+	position.z -= 0.1f;
+	Barrel->SetPosition(position.x, position.y, position.z);
+
+	// Обновление позиции камеры
+	m_Camera->SetPosition(position.x - 0.5f, position.y + 3.0f, position.z - 4.0f);
+	//m_Camera->SetLookAt(position.x, position.y, position.z);
+}
 
 //Перемещение
 //lab3 
-void RenderManager::MoveForward()
-{
-	if (isCameraFixed) return;
-	float speed = 0.2f;
-	XMFLOAT3 position = m_Camera->GetPosition();
-	XMFLOAT3 rotation = m_Camera->GetRotation();
-
-	XMVECTOR forward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-	XMMATRIX rotationMatrix = XMMatrixRotationY(XMConvertToRadians(rotation.y));
-	forward = XMVector3TransformCoord(forward, rotationMatrix);
-
-	position.x += XMVectorGetX(forward) * speed;
-	position.z += XMVectorGetZ(forward) * speed;
-
-	m_Camera->SetPosition(position.x, position.y, position.z);
-}
-
-void RenderManager::MoveBackward()
-{
-	if (isCameraFixed) return;
-	float speed = 0.2f;
-	XMFLOAT3 position = m_Camera->GetPosition();
-	XMFLOAT3 rotation = m_Camera->GetRotation();
-
-	XMVECTOR backward = XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f);
-	XMMATRIX rotationMatrix = XMMatrixRotationY(XMConvertToRadians(rotation.y));
-	backward = XMVector3TransformCoord(backward, rotationMatrix);
-
-	position.x += XMVectorGetX(backward) * speed;
-	position.z += XMVectorGetZ(backward) * speed;
-
-	m_Camera->SetPosition(position.x, position.y, position.z);
-}
-
-void RenderManager::MoveLeft()
-{
-	if (isCameraFixed) return;
-	float speed = 0.2f;
-	XMFLOAT3 position = m_Camera->GetPosition();
-	XMFLOAT3 rotation = m_Camera->GetRotation();
-
-	XMVECTOR left = XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f);
-	XMMATRIX rotationMatrix = XMMatrixRotationY(XMConvertToRadians(rotation.y));
-	left = XMVector3TransformCoord(left, rotationMatrix);
-
-	position.x += XMVectorGetX(left) * speed;
-	position.z += XMVectorGetZ(left) * speed;
-
-	m_Camera->SetPosition(position.x, position.y, position.z);
-}
-
-void RenderManager::MoveRight()
-{
-	if (isCameraFixed) return;
-	float speed = 0.05f;
-	XMFLOAT3 position = m_Camera->GetPosition();
-	XMFLOAT3 rotation = m_Camera->GetRotation();
-
-	XMVECTOR right = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
-	XMMATRIX rotationMatrix = XMMatrixRotationY(XMConvertToRadians(rotation.y));
-	right = XMVector3TransformCoord(right, rotationMatrix);
-
-	position.x += XMVectorGetX(right) * speed;
-	position.z += XMVectorGetZ(right) * speed;
-
-	m_Camera->SetPosition(position.x, position.y, position.z);
-}
-
-void RenderManager::MoveUp()
-{
-	if (isCameraFixed) return;
-	float speed = 0.2f;
-	XMFLOAT3 position = m_Camera->GetPosition();
-	position.y += speed;
-	m_Camera->SetPosition(position.x, position.y, position.z);
-}
-
-void RenderManager::MoveDown()
-{
-	if (isCameraFixed) return;
-	float speed = 0.2f;
-	XMFLOAT3 position = m_Camera->GetPosition();
-	position.y -= speed;
-	m_Camera->SetPosition(position.x, position.y, position.z);
-}
 
 void RenderManager::TurnLeft()
 {
@@ -260,76 +206,6 @@ void RenderManager::UpdateMouseMovement(int deltaX, int deltaY)
 	m_Camera->SetRotation(rotation.x, rotation.y, rotation.z);
 }
 
-//void RenderManager::UpPlatformLeft() {
-//
-//	XMFLOAT3 localPosition = m_ModelsPlatformsPong[1]->GetPosition();
-//
-//	float x = localPosition.x;
-//	float y;
-//	if (localPosition.y < 6) {
-//		y = localPosition.y + 0.4f;
-//	}
-//	else y = localPosition.y;
-//	float z = localPosition.z;
-//	m_ModelsPlatformsPong[1]->SetPosition(x, y, z);
-//}
-//
-//void RenderManager::DownPlatformLeft() {
-//	XMFLOAT3 localPosition = m_ModelsPlatformsPong[1]->GetPosition();
-//
-//	float x = localPosition.x;
-//	float y;
-//	if (localPosition.y > -6) {
-//		y = localPosition.y - 0.4f;
-//	} else y = localPosition.y;
-//	float z = localPosition.z;
-//
-//	m_ModelsPlatformsPong[1]->SetPosition(x, y, z);
-//}
-//
-//void RenderManager::UpPlatformRight() {
-//	XMFLOAT3 localPosition = m_ModelsPlatformsPong[0]->GetPosition();
-//
-//	float x = localPosition.x;
-//	float y;
-//	if (localPosition.y < 6) {
-//		y = localPosition.y + 0.4f;
-//	}
-//	else y = localPosition.y;
-//	float z = localPosition.z;
-//
-//	m_ModelsPlatformsPong[0]->SetPosition(x, y, z);
-//}
-//
-//void RenderManager::DownPlatformRight() {
-//	XMFLOAT3 localPosition = m_ModelsPlatformsPong[0]->GetPosition();
-//	
-//	float x = localPosition.x;
-//	float y;
-//	if (localPosition.y > -6) {
-//		y = localPosition.y - 0.4f;
-//	}
-//	else y = localPosition.y;
-//	float z = localPosition.z;
-//	m_ModelsPlatformsPong[0]->SetPosition(x, y, z);
-//}
-//
-//void RenderManager::ResizePlatform(ModelClass* model, int countScale) {
-//
-//	XMFLOAT3 SizePlatform = model->GetSize();
-//	float scaleFactorY = 0.2f;
-//	float scaleFactorXZ = 0.1f;
-//
-//	if (countScale < 18) {
-//		SizePlatform.x = SizePlatform.x - countScale / 120.0f;
-//		SizePlatform.y = SizePlatform.y - countScale / 22.0f;
-//		SizePlatform.z = SizePlatform.z - countScale / 120.0f;
-//		model->SetSize(SizePlatform.x, SizePlatform.y, SizePlatform.z);
-//	}
-//	else {
-//		model->SetSize(0.2f, 0.4f, 0.2f);
-//	}
-//}
 
 
 
@@ -420,8 +296,6 @@ bool RenderManager::Render()
 	m_Camera->GetViewMatrix(viewMatrix);
 	m_Direct3D->GetProjectionMatrix(projectionMatrix);
 
-	UpdatePlanets();
-	UpdateCamera();
 
 	for (int i = 0; i < 100; i++)
 	{
@@ -452,7 +326,22 @@ bool RenderManager::Render()
 		float z = localPosition.z;
 
 		XMMATRIX translationMatrix = XMMatrixTranslation(x, y, z);
-		XMMATRIX modelMatrix = translationMatrix;
+
+		// Поворот бочки на 90 градусов вокруг оси Z
+		XMMATRIX initialRotation = XMMatrixRotationZ(XMConvertToRadians(90.0f));
+
+		// Вращение бочки вокруг своей оси, если она движется вперед
+		if (isMovingForward || isMovingBackward)
+		{
+	
+			rotationAngle += (isMovingForward ? 0.1f : -0.1f);
+			XMMATRIX rotationMatrix = XMMatrixRotationY(rotationAngle); // Вращение вокруг оси Z
+			initialRotation = XMMatrixMultiply(rotationMatrix, initialRotation);
+			isMovingForward = false; // Сбрасываем флаг
+			isMovingBackward = false; // Сбрасываем флаг
+		}
+
+		XMMATRIX modelMatrix = XMMatrixMultiply(initialRotation, translationMatrix);
 
 		Barrel->Render(m_Direct3D->GetDeviceContext());
 		result = m_TextureShader->Render(m_Direct3D->GetDeviceContext(), Barrel->GetIndexCount(), modelMatrix, viewMatrix, projectionMatrix, Barrel->GetTexture());

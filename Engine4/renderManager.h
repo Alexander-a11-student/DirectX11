@@ -43,23 +43,9 @@ public:
 	bool Initialize(int, int, HWND);
 	void Shutdown();
 	bool Update();
-	//void UpPlatformLeft();
-	//void DownPlatformLeft();
-
-	//void UpPlatformRight();
-	//void DownPlatformRight();
-	//void ChangeLab();
-	//void ResizePlatform(ModelClass* model, int countScale);
-
-	//int scaleCounter[2];
 
 
-	void MoveForward();
-	void MoveBackward();
-	void MoveLeft();
-	void MoveRight();
-	void MoveUp();
-	void MoveDown();
+
 	void TurnLeft();
 	void TurnRight();
 	void RotateCameraUp();
@@ -70,6 +56,9 @@ public:
 	void FixCameraToPlanet(int planetIndex);
 	void ReleaseCamera();
 	void UpdateCamera();
+
+	void MoveBarrelForward();
+	void MoveBarrelBackward();
 
 	bool isCameraFixed = false;
 	int fixedPlanetIndex = -1;
@@ -93,26 +82,9 @@ private:
 	float timeGame = 0.0f;
 
 	ModelClass* Barrel;
-
-	//ModelClass* Planet2[10];
-
-	//Понг второе дз
-	//ModelClass* m_ModelsPong[3]; // 2 объекта + шарик 
-	//float SpeedBoll_X = 0.05f;
-	//float SpeedBoll_Y = 0.05f;
-
-	//float platformPosYLeft = 0.0f;
-	//float platformPosYRight = 0.0f;
-
-
-	//float currentTime = 0.0f;
-	//bool checkCollistion = true;
-	//float ThershHoldTime = 0.000101f;
-
-	//bool NumberLab = false;
-	//ModelClass* m_ModelsPlatformsPong[2];
-
-
+	bool isMovingForward = false;
+	bool isMovingBackward = false;
+	float rotationAngle = 0.0f;
 
 };
 

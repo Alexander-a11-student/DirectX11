@@ -147,38 +147,14 @@ LRESULT CALLBACK Game::MessageHandler(HWND hwnd, UINT umsg, WPARAM wparam, LPARA
 
 		m_Input->KeyDown((unsigned int)wparam);
 		// ƒвижение камеры к планетам:
-		if (m_Input->IsKeyDown(0x31)) { // 1 
-			m_RenderManager->FixCameraToPlanet(0);
-		}
-		if (m_Input->IsKeyDown(0x32)) { // 2 
-			m_RenderManager->FixCameraToPlanet(1);
-		}
-		if (m_Input->IsKeyDown(0x33)) { // 3 
-			m_RenderManager->FixCameraToPlanet(2);
-		}
-		if (m_Input->IsKeyDown(0x34)) { // 4 
-			m_RenderManager->ReleaseCamera();
-		}
-
-
 		if (m_Input->IsKeyDown(0x57)) { // W
-			m_RenderManager->MoveForward();
+			m_RenderManager->MoveBarrelForward();
 		}
 		if (m_Input->IsKeyDown(0x53)) { // S
-			m_RenderManager->MoveBackward();
+			m_RenderManager->MoveBarrelBackward();
 		}
-		if (m_Input->IsKeyDown(0x41)) { // A
-			m_RenderManager->MoveLeft();
-		}
-		if (m_Input->IsKeyDown(0x44)) { // D
-			m_RenderManager->MoveRight();
-		}
-		if (m_Input->IsKeyDown(VK_SPACE)) { // Space
-			m_RenderManager->MoveUp();
-		}
-		if (m_Input->IsKeyDown(VK_CAPITAL)) { // Shift
-			m_RenderManager->MoveDown();
-		}
+
+
 		if (m_Input->IsKeyDown(0xDB)) { // [ ( вадратна€ скобка влево)
 			m_RenderManager->TurnLeft();
 		}
