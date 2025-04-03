@@ -57,8 +57,7 @@ public:
 	void GenerateSphereModel(int slices, int stacks, float radius, const char* filename);
 	void SetRotationMatrix(const XMMATRIX& rotationMatrix);
 	XMMATRIX GetRotationMatrix() const;
-
-
+	
 	//Коллизия
 	bool CheckCollision(ModelClass* other);
 	void SetPosition(float x, float y, float z) { m_position = XMFLOAT3(x, y, z); }
@@ -76,6 +75,26 @@ public:
 
 
 	XMMATRIX modelMatrix;
+
+	float orbitRadius; // Радиус орбиты вокруг родителя
+	float orbitSpeed; // Скорость вращения вокруг родителя
+	float selfRotationSpeed; // Скорость собственного вращения	
+	int parentIndex; // Индекс родительского объекта (-1 для центральной звезды)
+	std::vector<int> satellites; // Индексы спутников
+
+
+	//Методы для вращения вокруг родителя
+	void SetOrbitParameters(float radius, float speed);
+	void SetSelfRotationSpeed(float speed);
+	void SetParent(int parent);
+	void AddSatellite(int satellite) { satellites.push_back(satellite); }
+
+	float GetOrbitRadius();
+	float GetOrbitSpeed();
+	float GetParent();
+	float GetSelfRotationSpeed();
+
+
 
 private:
 	bool InitializeBuffers(ID3D11Device*);
@@ -107,5 +126,7 @@ private:
 	XMFLOAT3 m_position;
 	XMFLOAT3 m_size;
 };
+
+
 
 #endif

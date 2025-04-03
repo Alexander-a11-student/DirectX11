@@ -421,3 +421,22 @@ void ModelClass::RenderBuffers(ID3D11DeviceContext* deviceContext)
 
 	return;
 }
+
+void ModelClass::SetOrbitParameters(float radius, float speed) {
+	orbitRadius = radius;
+	orbitSpeed = speed;
+}
+
+void ModelClass::SetSelfRotationSpeed(float speed) {
+	selfRotationSpeed = speed;
+}
+
+void ModelClass::SetParent(int parent) {
+	parentIndex = parent;
+}
+
+
+float ModelClass::GetOrbitSpeed()  { return orbitSpeed; }
+float ModelClass::GetParent()  { return parentIndex; }
+float ModelClass::GetSelfRotationSpeed()  { return selfRotationSpeed; }
+float ModelClass::GetOrbitRadius() { return orbitRadius; }

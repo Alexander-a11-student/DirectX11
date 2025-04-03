@@ -157,16 +157,22 @@ LRESULT CALLBACK Game::MessageHandler(HWND hwnd, UINT umsg, WPARAM wparam, LPARA
 		m_Input->KeyDown((unsigned int)wparam);
 		// Движение камеры к планетам:
 		if (m_Input->IsKeyDown(0x57)) { // W
-			m_RenderManager->MoveBarrelForward();
+			m_RenderManager->MoveForward();
 		}
 		if (m_Input->IsKeyDown(0x53)) { // S
-			m_RenderManager->MoveBarrelBackward();
+			m_RenderManager->MoveBackward();
 		}
 		if (m_Input->IsKeyDown(0x41)) { // A
-			m_RenderManager->MoveBarrelLeft();
+			m_RenderManager->MoveLeft();
 		}
 		if (m_Input->IsKeyDown(0x44)) { // D
-			m_RenderManager->MoveBarrelRight();
+			m_RenderManager->MoveRight();
+		}
+		if (m_Input->IsKeyDown(0x51)) { // Q
+			m_RenderManager->MoveUp();
+		}
+		if (m_Input->IsKeyDown(0x45)) { // E
+			m_RenderManager->MoveDown();
 		}
 
 
