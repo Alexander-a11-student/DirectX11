@@ -58,14 +58,7 @@ public:
 	void MoveBarrelLeft();
 	void MoveBarrelRight();
 
-	void MoveForward();
-	void MoveBackward();
-	void MoveLeft();
-	void MoveRight();
-	void MoveUp();
-	void MoveDown();
-
-	void UpdatePlanets();
+	void UpdatePlanet();
 
 	
 
@@ -78,10 +71,10 @@ private:
 	TextureShaderClass* m_TextureShader;
 
 	//Lab3
-	ModelClass* Planet[1000];
+	ModelClass* Planet;
 	float timeGame = 0.0f;
 
-	ModelClass* Barrel;
+	ModelClass* Barrel[10];
 
 	bool isMovingForward = false;
 	bool isMovingBackward = false;

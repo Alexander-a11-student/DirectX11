@@ -25,7 +25,7 @@ RenderManager::~RenderManager()
 
 bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 {
-	srand(static_cast<unsigned>(time(nullptr)));
+	srand(time(nullptr));
 
 	bool result;
 
@@ -38,106 +38,53 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 	}
 
 	m_Camera = new CameraClass;
-	m_Camera->SetPosition(0.0f, 200.0f, 0.0f);
-	m_Camera->SetRotation(0.0f, -89.0f, 0.0f);
+	m_Camera->SetPosition(-0.5f, 3.0f, -4.0f); // Устанавливаем камеру над бочкой
+	m_Camera->SetRotation(45.0f, 0.0f, 0.0f); // Наклоняем камеру вниз
 
 	char modelFilenamePlanet[128];
 	strcpy_s(modelFilenamePlanet, "../Engine4/sphere.txt");
 
-	char modelFilenamePlanet_0[128];
-	strcpy_s(modelFilenamePlanet_0, "../Engine4/sphere2.txt");
-
-	char modelFilenamePlanet_1[128];
-	strcpy_s(modelFilenamePlanet_1, "../Engine4/sphere3.txt");
-
-
-
-
 	char textureFilenamePlanet[128];
 	strcpy_s(textureFilenamePlanet, "../Engine4/TexturePlanet2.tga");
 
-	char textureFilenamePlanet_0[128];
-	strcpy_s(textureFilenamePlanet_0, "../Engine4/Circle2.tga");
+	//Бочка
 
-	char textureFilenamePlanet_1[128];
-	strcpy_s(textureFilenamePlanet_1, "../Engine4/Sun.tga");
+	char modelFilenameBarrel[128];
+	strcpy_s(modelFilenameBarrel, "../Engine4/Barrel.txt");
+
+	char textureFilenameBarrel[128];
+	strcpy_s(textureFilenameBarrel, "../Engine4/MyBarrel.tga");
 
 
+	for (int i = 0; i < 10; i++)
+	{
+		Barrel[i] = new ModelClass();
+		result = Barrel[i]->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), textureFilenameBarrel, modelFilenameBarrel);
+		if (!result)
+		{
+			MessageBox(hwnd, L"Could not initialize a moving model object.", L"Error", MB_OK);
+			return false;
+		}
+
+		// Случайное распределение объектов Planet[i] по карте
+		float x = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 100.0f - 50.0f;
+		float z = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 100.0f - 50.0f;
+		Barrel[i]->SetPosition(x, 0.0f, z);
+		Barrel[i]->SetSize(0.1f, 0.1f, 0.1f);
+	}
 
 
-	// Инициализация центральной звезды (индекс 0)
-	Planet[0] = new ModelClass();
-	result = Planet[0]->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), textureFilenamePlanet_1, modelFilenamePlanet_1);
-	if (!result) {
-		MessageBox(hwnd, L"Could not initialize central star.", L"Error", MB_OK);
+	Planet = new ModelClass();
+	result = Planet->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), textureFilenamePlanet, modelFilenamePlanet);
+	if (!result)
+	{
+		MessageBox(hwnd, L"Could not initialize the barrel model object.", L"Error", MB_OK);
 		return false;
 	}
-	Planet[0]->SetPosition(0.0f, 0.0f, 0.0f);
-	Planet[0]->SetSelfRotationSpeed(0.5f);
-	Planet[0]->SetParent(-1); // Нет родителя
 
-	// Инициализация 100 ключевых планет вокруг звезды с хаотичным распределением
-	int numPlanets = 100;
-	for (int i = 1; i <= numPlanets; i++) {
-		Planet[i] = new ModelClass();
-		result = Planet[i]->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), textureFilenamePlanet, modelFilenamePlanet);
-		if (!result) {
-			MessageBox(hwnd, L"Could not initialize a planet.", L"Error", MB_OK);
-			return false;
-		}
 
-		// Хаотичная дистанция и угол
-		float angle = static_cast<float>(rand()) / RAND_MAX * XM_2PI; // Случайный угол
-		float baseDistance = 50.0f + static_cast<float>(rand()) / RAND_MAX * 500.0f; // Случайная базовая дистанция
-		float distanceVariation = static_cast<float>(rand()) / RAND_MAX * 10.0f; // Дополнительное случайное отклонение
-
-		float distance = baseDistance + distanceVariation;
-
-		Planet[i]->SetOrbitParameters(distance, 0.1f + static_cast<float>(rand()) / RAND_MAX * 0.5f); // Случайная скорость орбиты
-		Planet[i]->SetSelfRotationSpeed(0.1f + static_cast<float>(rand()) / RAND_MAX * 0.4f); // Случайная скорость вращения
-		Planet[i]->SetParent(0); // Родитель - центральная звезда
-		Planet[0]->AddSatellite(i); // Добавляем планету как спутник звезды
-
-		float x = distance * cos(angle);
-		float z = distance * sin(angle);
-		Planet[i]->SetPosition(x, 0.0f, z);
-	}
-
-	// Инициализация спутников для планет (луны) и их собственных мини-спутников
-	int remainingObjects = 900; // Оставшиеся объекты после центральной звезды и планет
-	for (int i = numPlanets + 1; i < 1000 && remainingObjects > 0; i++) {
-		// Случайно выбираем, будет ли это луна или мини-спутник
-		int parentType = rand() % 2; // 0 - планета, 1 - уже существующий спутник
-		int maxParentIndex = (parentType == 0) ? numPlanets : (i - 1); // Максимальный индекс родителя
-
-		if (maxParentIndex < 1) continue; // Если нет подходящих родителей, пропускаем
-
-		int parentIndex = 1 + (rand() % maxParentIndex); // Случайный родитель
-
-		Planet[i] = new ModelClass();
-		result = Planet[i]->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), textureFilenamePlanet_0, modelFilenamePlanet_0);
-		if (!result) {
-			MessageBox(hwnd, L"Could not initialize a moon or mini-moon.", L"Error", MB_OK);
-			return false;
-		}
-
-		// Меньшие орбиты для спутников
-		float angle = static_cast<float>(rand()) / RAND_MAX * XM_2PI;
-		float baseMoonDistance = 10.0f + static_cast<float>(rand()) / RAND_MAX * 4.0f;
-		float moonDistance = baseMoonDistance * (parentType == 0 ? 1.0f : 0.5f); // Мини-спутники ближе
-
-		Planet[i]->SetOrbitParameters(moonDistance, 0.5f + static_cast<float>(rand()) / RAND_MAX * 4.0f); // Более быстрая орбита для спутников
-		Planet[i]->SetSelfRotationSpeed(0.3f + static_cast<float>(rand()) / RAND_MAX * 0.7f);
-		Planet[i]->SetParent(parentIndex); // Устанавливаем родителя
-		Planet[parentIndex]->AddSatellite(i); // Добавляем как спутник
-
-		XMFLOAT3 parentPos = Planet[parentIndex]->GetPosition();
-		float x = parentPos.x + moonDistance * cos(angle);
-		float z = parentPos.z + moonDistance * sin(angle);
-		Planet[i]->SetPosition(x, 0.0f, z);
-
-		remainingObjects--;
-	}
+	Planet->SetPosition(0.0f, 0.0f, 0.0f);
+	Planet->SetSize(5.0f, 5.0f, 5.0f);
 
 	m_TextureShader = new TextureShaderClass;
 	result = m_TextureShader->Initialize(m_Direct3D->GetDevice(), hwnd);
@@ -146,6 +93,7 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 		MessageBox(hwnd, L"Could not initialize the texture shader object.", L"Error", MB_OK);
 		return false;
 	}
+
 
 	return true;
 }
@@ -159,9 +107,9 @@ void RenderManager::MoveBarrelForward()
 	isMovingForward = true;
 
 	// Перемещение бочки вперед
-	XMFLOAT3 position = Barrel->GetPosition();
+	XMFLOAT3 position = Planet->GetPosition();
 	position.z += 0.1f;
-	Barrel->SetPosition(position.x, position.y, position.z);
+	Planet->SetPosition(position.x, position.y, position.z);
 
 	// Обновление позиции камеры
 	m_Camera->SetPosition(position.x - 0.5f, position.y + 3.0f, position.z - 4.0f);
@@ -175,9 +123,9 @@ void RenderManager::MoveBarrelBackward()
 	isMovingBackward = true;
 
 	// Перемещение бочки назад
-	XMFLOAT3 position = Barrel->GetPosition();
+	XMFLOAT3 position = Planet->GetPosition();
 	position.z -= 0.1f;
-	Barrel->SetPosition(position.x, position.y, position.z);
+	Planet->SetPosition(position.x, position.y, position.z);
 
 	// Обновление позиции камеры
 	m_Camera->SetPosition(position.x - 0.5f, position.y + 3.0f, position.z - 4.0f);
@@ -191,12 +139,12 @@ void RenderManager::MoveBarrelLeft()
 
 	// Поворот бочки на 90 градусов влево
 	XMMATRIX rotationMatrix = XMMatrixRotationY(XMConvertToRadians(-90.0f));
-	Barrel->SetRotationMatrix(rotationMatrix);
+	Planet->SetRotationMatrix(rotationMatrix);
 
 	// Перемещение бочки влево
-	XMFLOAT3 position = Barrel->GetPosition();
+	XMFLOAT3 position = Planet->GetPosition();
 	position.x -= 0.1f;
-	Barrel->SetPosition(position.x, position.y, position.z);
+	Planet->SetPosition(position.x, position.y, position.z);
 
 	// Обновление позиции камеры
 	m_Camera->SetPosition(position.x - 0.5f, position.y + 3.0f, position.z - 4.0f);
@@ -209,98 +157,15 @@ void RenderManager::MoveBarrelRight()
 
 	// Поворот бочки на 90 градусов вправо
 	XMMATRIX rotationMatrix = XMMatrixRotationY(XMConvertToRadians(90.0f));
-	Barrel->SetRotationMatrix(rotationMatrix);
+	Planet->SetRotationMatrix(rotationMatrix);
 
 	// Перемещение бочки вправо
-	XMFLOAT3 position = Barrel->GetPosition();
+	XMFLOAT3 position = Planet->GetPosition();
 	position.x += 0.1f;
-	Barrel->SetPosition(position.x, position.y, position.z);
+	Planet->SetPosition(position.x, position.y, position.z);
 
 	// Обновление позиции камеры
 	m_Camera->SetPosition(position.x - 0.5f, position.y + 3.0f, position.z - 4.0f);
-}
-
-//Перемещение
-//lab3 
-
-void RenderManager::MoveForward()
-{
-	float speed = 0.2f;
-	XMFLOAT3 position = m_Camera->GetPosition();
-	XMFLOAT3 rotation = m_Camera->GetRotation();
-
-	XMVECTOR forward = XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
-	XMMATRIX rotationMatrix = XMMatrixRotationY(XMConvertToRadians(rotation.y));
-	forward = XMVector3TransformCoord(forward, rotationMatrix);
-
-	position.x += XMVectorGetX(forward) * speed;
-	position.z += XMVectorGetZ(forward) * speed;
-
-	m_Camera->SetPosition(position.x, position.y, position.z);
-}
-
-void RenderManager::MoveBackward()
-{
-	float speed = 0.2f;
-	XMFLOAT3 position = m_Camera->GetPosition();
-	XMFLOAT3 rotation = m_Camera->GetRotation();
-
-	XMVECTOR backward = XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f);
-	XMMATRIX rotationMatrix = XMMatrixRotationY(XMConvertToRadians(rotation.y));
-	backward = XMVector3TransformCoord(backward, rotationMatrix);
-
-	position.x += XMVectorGetX(backward) * speed;
-	position.z += XMVectorGetZ(backward) * speed;
-
-	m_Camera->SetPosition(position.x, position.y, position.z);
-}
-
-void RenderManager::MoveLeft()
-{
-	float speed = 0.2f;
-	XMFLOAT3 position = m_Camera->GetPosition();
-	XMFLOAT3 rotation = m_Camera->GetRotation();
-
-	XMVECTOR left = XMVectorSet(-1.0f, 0.0f, 0.0f, 0.0f);
-	XMMATRIX rotationMatrix = XMMatrixRotationY(XMConvertToRadians(rotation.y));
-	left = XMVector3TransformCoord(left, rotationMatrix);
-
-	position.x += XMVectorGetX(left) * speed;
-	position.z += XMVectorGetZ(left) * speed;
-
-	m_Camera->SetPosition(position.x, position.y, position.z);
-}
-
-void RenderManager::MoveRight()
-{
-	float speed = 0.05f;
-	XMFLOAT3 position = m_Camera->GetPosition();
-	XMFLOAT3 rotation = m_Camera->GetRotation();
-
-	XMVECTOR right = XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
-	XMMATRIX rotationMatrix = XMMatrixRotationY(XMConvertToRadians(rotation.y));
-	right = XMVector3TransformCoord(right, rotationMatrix);
-
-	position.x += XMVectorGetX(right) * speed;
-	position.z += XMVectorGetZ(right) * speed;
-
-	m_Camera->SetPosition(position.x, position.y, position.z);
-}
-
-void RenderManager::MoveUp()
-{
-	float speed = 0.2f;
-	XMFLOAT3 position = m_Camera->GetPosition();
-	position.y += speed;
-	m_Camera->SetPosition(position.x, position.y, position.z);
-}
-
-void RenderManager::MoveDown()
-{
-	float speed = 0.2f;
-	XMFLOAT3 position = m_Camera->GetPosition();
-	position.y -= speed;
-	m_Camera->SetPosition(position.x, position.y, position.z);
 }
 
 void RenderManager::TurnLeft()
@@ -374,39 +239,42 @@ void RenderManager::UpdateMouseMovement(int deltaX, int deltaY)
 
 
 
-void RenderManager::UpdatePlanets() {
-	timeGame += 0.016f; // Пример: обновление каждые 16 мс (60 FPS)
+void RenderManager::UpdatePlanet()
+{
+	// Определяем скорость вращения (угол, на который смещение поворачивается каждый кадр)
+	const float rotationSpeed = 0.01f; // можно настроить под нужную скорость
+	rotationAngle += rotationSpeed;
 
-	for (int i = 0; i < 1000; i++) {
-		if (Planet[i]) {
-			if (Planet[i]->GetParent() == -1) {
+	// Для каждой планеты, которая прикреплена к бочке, обновляем позицию
+	for (int i = 0; i < 10; i++)
+	{
+		if (Barrel[i]->IsAttached())
+		{
+			// Получаем позицию бочки
+			XMFLOAT3 barrelPos = Planet->GetPosition();
 
-				// Собственное вращение (вращение вокруг своей оси)
-				float selfAngle = timeGame * Planet[i]->GetSelfRotationSpeed();
-				XMMATRIX rotationMatrix = XMMatrixRotationY(selfAngle);
-				Planet[i]->SetRotationMatrix(rotationMatrix);
-				// Центральная звезда неподвижна
-				continue;
-			}
+			// Получаем исходное смещение, записанное при столкновении
+			XMFLOAT3 offset = Barrel[i]->GetOffset();
 
-			int parentIndex = Planet[i]->GetParent();
-			XMFLOAT3 parentPos = Planet[parentIndex]->GetPosition();
+			// Преобразуем offset в XMVECTOR
+			XMVECTOR offsetVector = XMLoadFloat3(&offset);
 
-			// Вращение вокруг родителя
-			float orbitSpeed = Planet[i]->GetOrbitSpeed();
-			float angle = timeGame * orbitSpeed;
-			float orbitRadius = Planet[i]->GetOrbitRadius();
+			// Создаем матрицу вращения вокруг оси Y (если требуется другая ось — замените)
+			XMMATRIX rotationMatrix = XMMatrixRotationY(rotationAngle);
 
-			float x = parentPos.x + orbitRadius * cos(angle);
-			float z = parentPos.z + orbitRadius * sin(angle);
+			// Применяем вращение к offset
+			offsetVector = XMVector3Transform(offsetVector, rotationMatrix);
 
-			// Обновляем позицию
-			Planet[i]->SetPosition(x, 0.0f, z);
+			// Вычисляем новое смещение
+			XMFLOAT3 newOffset;
+			XMStoreFloat3(&newOffset, offsetVector);
 
-			// Собственное вращение (вращение вокруг своей оси)
-			float selfAngle = timeGame * Planet[i]->GetSelfRotationSpeed();
-			XMMATRIX rotationMatrix = XMMatrixRotationY(selfAngle);
-			Planet[i]->SetRotationMatrix(rotationMatrix);
+			// Обновляем позицию планеты относительно текущей позиции бочки
+			Barrel[i]->SetPosition(
+				barrelPos.x + newOffset.x,
+				barrelPos.y + newOffset.y,
+				barrelPos.z + newOffset.z
+			);
 		}
 	}
 }
@@ -428,27 +296,117 @@ bool RenderManager::Render()
 	m_Camera->GetViewMatrix(viewMatrix);
 	m_Direct3D->GetProjectionMatrix(projectionMatrix);
 
-	UpdatePlanets();
-
-	for (int i = 0; i < 1000; i++)
+	if (isMovingForward)
 	{
-		if (Planet[i])
+		planetRotationAngle += 0.05f; // При движении вперед увеличиваем угол
+	}
+	if (isMovingBackward)
+	{
+		planetRotationAngle -= 0.05f; // При движении назад уменьшаем угол (обратное вращение)
+	}
+
+	for (int i = 0; i < 10; i++)
+	{
+		if (!Barrel[i]->IsAttached() && Planet->CheckCollision(Barrel[i]))
 		{
-			XMFLOAT3 localPosition = Planet[i]->GetPosition();
+			// При столкновении вычисляем смещение от бочки
+			XMFLOAT3 barrelPos = Planet->GetPosition();
+			XMFLOAT3 planetPos = Barrel[i]->GetPosition();
+			XMFLOAT3 offset = {
+				planetPos.x - barrelPos.x,
+				planetPos.y - barrelPos.y,
+				planetPos.z - barrelPos.z
+			};
+			Barrel[i]->SetAttached(true);
+			// Сохраняем текущий глобальный угол как базовый для этой планеты
+			Barrel[i]->SetAttachmentBaseAngle(planetRotationAngle);
+			Barrel[i]->SetOffset(offset);
+		}
+		else if (Barrel[i]->IsAttached()) // Если планета прикреплена – обновляем её позицию с учетом вращения
+		{
+			XMFLOAT3 barrelPos = Planet->GetPosition();
+			XMFLOAT3 offset = Barrel[i]->GetOffset();
+
+			// Вычисляем разницу между текущим глобальным углом и углом в момент присоединения
+			float deltaAngle = planetRotationAngle - Barrel[i]->GetAttachmentBaseAngle();
+
+			// Преобразуем offset с учетом вращения вокруг оси Y (можете изменить на нужную ось)
+			XMVECTOR offsetVector = XMLoadFloat3(&offset);
+			XMMATRIX rotationMat = XMMatrixRotationX(deltaAngle);
+			offsetVector = XMVector3Transform(offsetVector, rotationMat);
+			XMFLOAT3 newOffset;
+			XMStoreFloat3(&newOffset, offsetVector);
+
+			Barrel[i]->SetPosition(
+				barrelPos.x + newOffset.x,
+				barrelPos.y + newOffset.y,
+				barrelPos.z + newOffset.z
+			);
+		}
+
+		if (Barrel[i])
+		{
+			XMFLOAT3 localPosition = Barrel[i]->GetPosition();
 			float x = localPosition.x;
 			float y = localPosition.y;
 			float z = localPosition.z;
 
 			XMMATRIX translationMatrix = XMMatrixTranslation(x, y, z);
-			XMMATRIX rotationMatrix = Planet[i]->GetRotationMatrix();
+			XMMATRIX rotationMatrix = Barrel[i]->GetRotationMatrix();
 			XMMATRIX modelMatrix = XMMatrixMultiply(rotationMatrix, translationMatrix);
 
-			Planet[i]->Render(m_Direct3D->GetDeviceContext());
-			result = m_TextureShader->Render(m_Direct3D->GetDeviceContext(), Planet[i]->GetIndexCount(), modelMatrix, viewMatrix, projectionMatrix, Planet[i]->GetTexture());
+			Barrel[i]->Render(m_Direct3D->GetDeviceContext());
+			result = m_TextureShader->Render(m_Direct3D->GetDeviceContext(), Barrel[i]->GetIndexCount(), modelMatrix, viewMatrix, projectionMatrix, Barrel[i]->GetTexture());
 			if (!result) return false;
 			worldMatrix = XMMatrixIdentity();
 		}
 	}
+
+	if (Planet)
+	{
+		XMFLOAT3 localPosition = Planet->GetPosition();
+		float x = localPosition.x;
+		float y = localPosition.y;
+		float z = localPosition.z;
+
+		XMMATRIX translationMatrix = XMMatrixTranslation(x, y, z);
+
+		// Поворот бочки на 90 градусов вокруг оси Z
+		XMMATRIX initialRotation = XMMatrixRotationZ(XMConvertToRadians(90.0f));
+
+		// Вращение бочки вокруг своей оси, если она движется
+		if (isMovingForward || isMovingBackward || isMovingLeft || isMovingRight)
+		{
+			if (isMovingForward) {
+				rotationAngle -= 0.1f;
+			}
+			if (isMovingBackward) {
+				rotationAngle += 0.1f;
+			}
+			if (isMovingLeft) {
+				rotationAngle -= 0.1f;
+			}
+			if (isMovingRight) {
+				rotationAngle -= 0.1f;
+			}
+			XMMATRIX rotationMatrix = XMMatrixRotationY(rotationAngle); // Поворот вокруг оси Y (при необходимости замените ось)
+			initialRotation = XMMatrixMultiply(rotationMatrix, initialRotation);
+			isMovingForward = false;
+			isMovingBackward = false;
+			isMovingLeft = false;
+			isMovingRight = false;
+		}
+
+		XMMATRIX modelMatrix = XMMatrixMultiply(initialRotation, translationMatrix);
+
+		Planet->Render(m_Direct3D->GetDeviceContext());
+		result = m_TextureShader->Render(m_Direct3D->GetDeviceContext(), Planet->GetIndexCount(), modelMatrix, viewMatrix, projectionMatrix, Planet->GetTexture());
+		if (!result) return false;
+		worldMatrix = XMMatrixIdentity();
+	}
+
+
+
 
 	//Конец СЦЕНЫ
 	m_Direct3D->EndScene();
@@ -471,13 +429,13 @@ bool RenderManager::Update()
 
 void RenderManager::Shutdown()
 {
-	for (int i = 0; i < 100; i++)
+	for (int i = 0; i < 10; i++)
 	{
-		if (Planet[i])
+		if (Barrel[i])
 		{
-			Planet[i]->Shutdown();
-			delete Planet[i];
-			Planet[i] = nullptr;
+			Barrel[i]->Shutdown();
+			delete Barrel[i];
+			Barrel[i] = nullptr;
 		}
 	}
 
@@ -493,6 +451,12 @@ void RenderManager::Shutdown()
 	{
 		delete m_Camera;
 		m_Camera = 0;
+	}
+
+	if (Planet) {
+		Planet->Shutdown();
+		delete Planet;
+		Planet = 0;
 	}
 
 	if (m_Direct3D)
