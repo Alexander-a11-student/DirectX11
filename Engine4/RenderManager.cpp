@@ -25,7 +25,7 @@ RenderManager::~RenderManager()
 
 bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 {
-	srand(time(nullptr));
+	srand(static_cast<unsigned>(time(nullptr)));
 
 	bool result;
 
@@ -38,27 +38,45 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 	}
 
 	m_Camera = new CameraClass;
-	m_Camera->SetPosition(-0.5f, 3.0f, -4.0f); // Устанавливаем камеру над бочкой
-	m_Camera->SetRotation(45.0f, 0.0f, 0.0f); // Наклоняем камеру вниз
+	m_Camera->SetPosition(0.0f, 200.0f, 0.0f);
+	m_Camera->SetRotation(0.0f, -89.0f, 0.0f);
 
 	char modelFilenamePlanet[128];
 	strcpy_s(modelFilenamePlanet, "../Engine4/sphere.txt");
 
+	char modelFilenamePlanet_0[128];
+	strcpy_s(modelFilenamePlanet_0, "../Engine4/sphere2.txt");
+
+	char modelFilenamePlanet_1[128];
+	strcpy_s(modelFilenamePlanet_1, "../Engine4/sphere3.txt");
+
+
+
+
 	char textureFilenamePlanet[128];
 	strcpy_s(textureFilenamePlanet, "../Engine4/TexturePlanet2.tga");
+
+	char textureFilenamePlanet_0[128];
+	strcpy_s(textureFilenamePlanet_0, "../Engine4/Circle2.tga");
+
+	char textureFilenamePlanet_1[128];
+	strcpy_s(textureFilenamePlanet_1, "../Engine4/Sun.tga");
+
+
 
 
 	// Инициализация центральной звезды (индекс 0)
 	Planet[0] = new ModelClass();
-	result = Planet[0]->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), textureFilenamePlanet, modelFilenamePlanet);
+	result = Planet[0]->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), textureFilenamePlanet_1, modelFilenamePlanet_1);
 	if (!result) {
 		MessageBox(hwnd, L"Could not initialize central star.", L"Error", MB_OK);
 		return false;
 	}
 	Planet[0]->SetPosition(0.0f, 0.0f, 0.0f);
+	Planet[0]->SetSelfRotationSpeed(0.5f);
 	Planet[0]->SetParent(-1); // Нет родителя
 
-	// Инициализация 200 ключевых планет вокруг звезды
+	// Инициализация 100 ключевых планет вокруг звезды с хаотичным распределением
 	int numPlanets = 100;
 	for (int i = 1; i <= numPlanets; i++) {
 		Planet[i] = new ModelClass();
@@ -68,12 +86,15 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 			return false;
 		}
 
-		// Увеличиваем дистанцию орбит для предотвращения "слипания"
-		float angle = static_cast<float>(i) / numPlanets * XM_2PI;
-		float distance = 10.0f + static_cast<float>(i) * 5.0f; // Увеличиваем базовую дистанцию и шаг
+		// Хаотичная дистанция и угол
+		float angle = static_cast<float>(rand()) / RAND_MAX * XM_2PI; // Случайный угол
+		float baseDistance = 50.0f + static_cast<float>(rand()) / RAND_MAX * 500.0f; // Случайная базовая дистанция
+		float distanceVariation = static_cast<float>(rand()) / RAND_MAX * 10.0f; // Дополнительное случайное отклонение
 
-		Planet[i]->SetOrbitParameters(distance, 0.3f + static_cast<float>(i) / 1000.0f); // Меньше скорость для дальних планет
-		Planet[i]->SetSelfRotationSpeed(0.2f + static_cast<float>(rand()) / RAND_MAX * 0.3f); // Разная скорость вращения
+		float distance = baseDistance + distanceVariation;
+
+		Planet[i]->SetOrbitParameters(distance, 0.1f + static_cast<float>(rand()) / RAND_MAX * 0.5f); // Случайная скорость орбиты
+		Planet[i]->SetSelfRotationSpeed(0.1f + static_cast<float>(rand()) / RAND_MAX * 0.4f); // Случайная скорость вращения
 		Planet[i]->SetParent(0); // Родитель - центральная звезда
 		Planet[0]->AddSatellite(i); // Добавляем планету как спутник звезды
 
@@ -82,31 +103,40 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 		Planet[i]->SetPosition(x, 0.0f, z);
 	}
 
-	// Инициализация спутников для планет (осталось 800 объектов)
-	int numMoons = 1000 - numPlanets - 1; // 799 спутников
-	for (int i = numPlanets + 1; i < 1000 && numMoons > 0; i++) {
-		int parentPlanet = rand() % numPlanets + 1; // Случайная планета как родитель
+	// Инициализация спутников для планет (луны) и их собственных мини-спутников
+	int remainingObjects = 900; // Оставшиеся объекты после центральной звезды и планет
+	for (int i = numPlanets + 1; i < 1000 && remainingObjects > 0; i++) {
+		// Случайно выбираем, будет ли это луна или мини-спутник
+		int parentType = rand() % 2; // 0 - планета, 1 - уже существующий спутник
+		int maxParentIndex = (parentType == 0) ? numPlanets : (i - 1); // Максимальный индекс родителя
+
+		if (maxParentIndex < 1) continue; // Если нет подходящих родителей, пропускаем
+
+		int parentIndex = 1 + (rand() % maxParentIndex); // Случайный родитель
 
 		Planet[i] = new ModelClass();
-		result = Planet[i]->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), textureFilenamePlanet, modelFilenamePlanet);
+		result = Planet[i]->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), textureFilenamePlanet_0, modelFilenamePlanet_0);
 		if (!result) {
-			MessageBox(hwnd, L"Could not initialize a moon.", L"Error", MB_OK);
+			MessageBox(hwnd, L"Could not initialize a moon or mini-moon.", L"Error", MB_OK);
 			return false;
 		}
 
 		// Меньшие орбиты для спутников
 		float angle = static_cast<float>(rand()) / RAND_MAX * XM_2PI;
-		float moonDistance = 5.0f + static_cast<float>(rand()) / RAND_MAX * 10.0f; // Увеличиваем диапазон для разнообразия
+		float baseMoonDistance = 10.0f + static_cast<float>(rand()) / RAND_MAX * 4.0f;
+		float moonDistance = baseMoonDistance * (parentType == 0 ? 1.0f : 0.5f); // Мини-спутники ближе
 
-		Planet[i]->SetOrbitParameters(moonDistance, 1.0f + static_cast<float>(rand()) / RAND_MAX * 3.0f); // Быстрее вращаются
-		Planet[i]->SetSelfRotationSpeed(0.5f + static_cast<float>(rand()) / RAND_MAX * 0.5f);
-		Planet[i]->SetParent(parentPlanet); // Родитель - планета
-		Planet[parentPlanet]->AddSatellite(i); // Добавляем как спутник планеты
+		Planet[i]->SetOrbitParameters(moonDistance, 0.5f + static_cast<float>(rand()) / RAND_MAX * 4.0f); // Более быстрая орбита для спутников
+		Planet[i]->SetSelfRotationSpeed(0.3f + static_cast<float>(rand()) / RAND_MAX * 0.7f);
+		Planet[i]->SetParent(parentIndex); // Устанавливаем родителя
+		Planet[parentIndex]->AddSatellite(i); // Добавляем как спутник
 
-		XMFLOAT3 parentPos = Planet[parentPlanet]->GetPosition();
+		XMFLOAT3 parentPos = Planet[parentIndex]->GetPosition();
 		float x = parentPos.x + moonDistance * cos(angle);
 		float z = parentPos.z + moonDistance * sin(angle);
 		Planet[i]->SetPosition(x, 0.0f, z);
+
+		remainingObjects--;
 	}
 
 	m_TextureShader = new TextureShaderClass;
@@ -116,7 +146,6 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 		MessageBox(hwnd, L"Could not initialize the texture shader object.", L"Error", MB_OK);
 		return false;
 	}
-
 
 	return true;
 }
@@ -351,6 +380,11 @@ void RenderManager::UpdatePlanets() {
 	for (int i = 0; i < 1000; i++) {
 		if (Planet[i]) {
 			if (Planet[i]->GetParent() == -1) {
+
+				// Собственное вращение (вращение вокруг своей оси)
+				float selfAngle = timeGame * Planet[i]->GetSelfRotationSpeed();
+				XMMATRIX rotationMatrix = XMMatrixRotationY(selfAngle);
+				Planet[i]->SetRotationMatrix(rotationMatrix);
 				// Центральная звезда неподвижна
 				continue;
 			}
