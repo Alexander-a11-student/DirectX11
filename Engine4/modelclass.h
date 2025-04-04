@@ -1,4 +1,4 @@
-////////////////////////////////////////////////////////////////////////////////
+п»ї////////////////////////////////////////////////////////////////////////////////
 // Filename: modelclass.h
 ////////////////////////////////////////////////////////////////////////////////
 #ifndef _MODELCLASS_H_
@@ -53,12 +53,12 @@ public:
 
 
 
-	//Для 3 lab
+	//Р”Р»СЏ 3 lab
 	void GenerateSphereModel(int slices, int stacks, float radius, const char* filename);
 	void SetRotationMatrix(const XMMATRIX& rotationMatrix);
 	XMMATRIX GetRotationMatrix() const;
 	
-	//Коллизия
+	//РљРѕР»Р»РёР·РёСЏ
 	bool CheckCollision(ModelClass* other);
 	void SetPosition(float x, float y, float z) { m_position = XMFLOAT3(x, y, z); }
 	void SetSize(float width, float height, float depth) { m_size = XMFLOAT3(width, height, depth); }
@@ -74,26 +74,20 @@ public:
 	float GetAttachmentBaseAngle() const { return m_AttachmentBaseAngle; }
 
 
+	void SetSize(float radius);
+	bool CheckCollisionSphere(ModelClass* other);
+
+	XMMATRIX m_initialInverseRotation; 
+
+	void SetInitialInverseRotation(XMMATRIX matrix) { m_initialInverseRotation = matrix; }
+	XMMATRIX GetInitialInverseRotation() { return m_initialInverseRotation; }
+
+
 	XMMATRIX modelMatrix;
 
-	float orbitRadius; // Радиус орбиты вокруг родителя
-	float orbitSpeed; // Скорость вращения вокруг родителя
-	float selfRotationSpeed; // Скорость собственного вращения	
-	int parentIndex; // Индекс родительского объекта (-1 для центральной звезды)
-	std::vector<int> satellites; // Индексы спутников
-
-
-	//Методы для вращения вокруг родителя
-	void SetOrbitParameters(float radius, float speed);
-	void SetSelfRotationSpeed(float speed);
-	void SetParent(int parent);
-	void AddSatellite(int satellite) { satellites.push_back(satellite); }
-
-	float GetOrbitRadius();
-	float GetOrbitSpeed();
-	float GetParent();
-	float GetSelfRotationSpeed();
-
+	void SetSphericalCoords(float theta, float phi) { m_theta = theta; m_phi = phi; }
+	float GetTheta() const { return m_theta; }
+	float GetPhi() const { return m_phi; }
 
 
 private:
@@ -112,19 +106,23 @@ private:
 
 
 private:
-	bool m_attached = false;         // Флаг: прикреплена ли планета к бочке
-	XMFLOAT3 m_offset = { 0.0f, 0.0f, 0.0f }; // Смещение от бочки
+	bool m_attached = false;         // Р¤Р»Р°Рі: РїСЂРёРєСЂРµРїР»РµРЅР° Р»Рё РїР»Р°РЅРµС‚Р° Рє Р±РѕС‡РєРµ
+	XMFLOAT3 m_offset = { 0.0f, 0.0f, 0.0f }; // РЎРјРµС‰РµРЅРёРµ РѕС‚ Р±РѕС‡РєРё
 	//Lab3
-	XMMATRIX m_RotationMatrix; // Матрица вращения
+	XMMATRIX m_RotationMatrix; // РњР°С‚СЂРёС†Р° РІСЂР°С‰РµРЅРёСЏ
 
 	ID3D11Buffer* m_vertexBuffer, * m_indexBuffer;
 	int m_vertexCount, m_indexCount;
 	ModelType* m_model;
 	TextureClass* m_Texture;
 
-	//Коллизия
+	//РљРѕР»Р»РёР·РёСЏ
 	XMFLOAT3 m_position;
 	XMFLOAT3 m_size;
+
+	// ... СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёРµ РїРѕР»СЏ ...
+	float m_theta = 0.0f; // РЈРіРѕР» theta (Р°Р·РёРјСѓС‚, РѕС‚ 0 РґРѕ 2ПЂ)
+	float m_phi = 0.0f;   // РЈРіРѕР» phi (РЅР°РєР»РѕРЅ, РѕС‚ 0 РґРѕ ПЂ)
 };
 
 

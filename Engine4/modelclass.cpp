@@ -114,7 +114,7 @@ bool ModelClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCon
 {
 	bool result;
 
-	//GenerateSphereModel(7, 7, 5.0f, "sphere.txt");
+	//GenerateSphereModel(50, 50, 1.5f, "sphere.txt");
 	//GenerateSphereModel(20, 20, 1.0f, "sphere2.txt");
 	//GenerateSphereModel(20, 20, 20.0f, "sphere3.txt");
 
@@ -333,9 +333,6 @@ void ModelClass::ReleaseModel()
 	return;
 }
 
-
-
-
 void ModelClass::ShutdownBuffers()
 {
 	// Release the index buffer.
@@ -390,12 +387,33 @@ bool ModelClass::CheckCollision(ModelClass* other) {
 	XMFLOAT3 otherPos = other->GetPosition();
 	XMFLOAT3 otherSize = other->GetSize();
 
-	// Добавляем смещение по оси X для корректировки
-	float collisionOffsetX = -0.5f; // подберите значение по необходимости
-
-	return (abs((m_position.x + collisionOffsetX) - otherPos.x) < (m_size.x / 2 + otherSize.x / 2)) &&
+	return (abs((m_position.x ) - otherPos.x) < (m_size.x / 2 + otherSize.x / 2)) &&
 		(abs(m_position.y - otherPos.y) < (m_size.y / 2 + otherSize.y / 2)) &&
 		(abs(m_position.z - otherPos.z) < (m_size.z / 2 + otherSize.z / 2));
+}
+
+
+void ModelClass::SetSize(float diametr) {
+	m_size = XMFLOAT3(diametr, diametr, diametr); // Храним радиус в m_size.x
+}
+
+bool ModelClass::CheckCollisionSphere(ModelClass* other) {
+
+	XMFLOAT3 otherPos = other->GetPosition();
+	float otherRadius = other->GetSize().x / 2.0f;
+
+	// Предполагаем, что m_size.x — это радиус объекта
+	float thisRadius = m_size.x / 2.0f;  // Половина "ширины" как радиус
+
+
+	// Вычисляем расстояние между центрами объектов
+	float dx = m_position.x - otherPos.x;
+	float dy = m_position.y - otherPos.y;
+	float dz = m_position.z - otherPos.z;
+	float distance = sqrt(dx * dx + dy * dy + dz * dz);
+
+	// Проверяем, пересекаются ли сферы
+	return distance < (thisRadius + otherRadius);
 }
 
 
@@ -422,22 +440,3 @@ void ModelClass::RenderBuffers(ID3D11DeviceContext* deviceContext)
 
 	return;
 }
-
-void ModelClass::SetOrbitParameters(float radius, float speed) {
-	orbitRadius = radius;
-	orbitSpeed = speed;
-}
-
-void ModelClass::SetSelfRotationSpeed(float speed) {
-	selfRotationSpeed = speed;
-}
-
-void ModelClass::SetParent(int parent) {
-	parentIndex = parent;
-}
-
-
-float ModelClass::GetOrbitSpeed()  { return orbitSpeed; }
-float ModelClass::GetParent()  { return parentIndex; }
-float ModelClass::GetSelfRotationSpeed()  { return selfRotationSpeed; }
-float ModelClass::GetOrbitRadius() { return orbitRadius; }

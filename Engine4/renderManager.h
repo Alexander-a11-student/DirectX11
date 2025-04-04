@@ -58,8 +58,6 @@ public:
 	void MoveBarrelLeft();
 	void MoveBarrelRight();
 
-	void UpdatePlanet();
-
 	
 
 
@@ -85,6 +83,9 @@ private:
 	float currentAngle = 0.0f;
 
 	float planetRotationAngle = 0.0f;
+
+	float Rotation_X_planet = 0.0f; // ”гол вращени€ планеты вокруг оси X (в радианах)
+	float Rotation_Z_planet = 0.0f; // ”гол вращени€ планеты вокруг оси Z (в радианах)
 
 };
 
