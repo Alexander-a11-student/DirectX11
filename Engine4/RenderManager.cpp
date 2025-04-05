@@ -34,9 +34,12 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 	}
 
 	m_Camera = new CameraClass;
-	m_Camera->SetPosition(0.0f, 10.0f, -10.0f); // Устанавливаем камеру над бочкой
-	m_Camera->SetRotation(0.0f, 0.0f, 0.0f); // Наклоняем камеру вниз
 
+	cameraDistance = 15.0f; // Начальное расстояние от планеты
+	cameraYaw = XMConvertToRadians(0.0f);   // Начальный угол по горизонтали (в радианах)
+	cameraPitch = XMConvertToRadians(45.0f); // Начальный угол по вертикали (в радианах)
+
+	//Планета
 	char modelFilenamePlanet[128];
 	strcpy_s(modelFilenamePlanet, "../Engine4/sphere.txt");
 		
@@ -50,6 +53,13 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 
 	char textureFilenameBarrel[128];
 	strcpy_s(textureFilenameBarrel, "../Engine4/MyBarrel.tga");
+
+	//Пол
+	char modelFilenameFloor[128];
+	strcpy_s(modelFilenameFloor, "../Engine4/Boll.txt");
+
+	char textureFilenameFloor[128];
+	strcpy_s(textureFilenameFloor, "../Engine4/Circle2.tga");
 
 
 	for (int i = 0; i < 10; i++)
@@ -68,6 +78,18 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 		Barrel[i]->SetPosition(x, -0.2f, z);
 		Barrel[i]->SetSize(0.9f);
 	}
+
+
+	Floor = new ModelClass;
+	result = Floor->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), textureFilenameFloor, modelFilenameFloor);
+	if (!result)
+	{
+		MessageBox(hwnd, L"Could not initialize the barrel model object.", L"Error", MB_OK);
+		return false;
+	}
+
+	Floor->SetPosition(0.0f, -1.0f, 0.0f);
+
 
 
 	Planet = new ModelClass();
@@ -95,194 +117,246 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 }
 
 //Повороты сферы
-void RenderManager::MoveBarrelForward() 
+void RenderManager::MoveBarrelForward()
 {
-	planetRotationAngle += 0.1f;
-
-	// Устанавливаем флаг, что бочка движется вперед
 	isMovingForward = true;
 
-	// Перемещение бочки вперед
 	XMFLOAT3 position = Planet->GetPosition();
-	position.z += 0.1f;
+	XMFLOAT3 direction = GetCameraDirection();
+
+	const float moveSpeed = 0.1f;
+
+	position.x += direction.x * moveSpeed;
+	position.z += direction.z * moveSpeed;
 	Planet->SetPosition(position.x, position.y, position.z);
 
-	// Фиксированное вращение вокруг оси X (например, 5 градусов за движение)
-	constexpr float rotationAngleIncrement = XMConvertToRadians(5.0f); // Фиксированный угол (5 градусов)
+	// Определяем ось вращения (перпендикулярно направлению движения)
+	XMFLOAT3 rotationAxis = { -direction.z, 0.0f, direction.x }; // (x, z) -> (-z, x)
+	float length = sqrt(rotationAxis.x * rotationAxis.x + rotationAxis.z * rotationAxis.z);
+	if (length > 0.0f)
+	{
+		rotationAxis.x /= length;
+		rotationAxis.z /= length;
+	}
 
-	// Получаем текущую матрицу вращения
+	// Вращаем планету вокруг этой оси
+	constexpr float rotationAngleIncrement = XMConvertToRadians(5.0f);
 	XMMATRIX currentRotation = Planet->GetRotationMatrix();
 	if (XMMatrixIsIdentity(currentRotation))
 	{
 		currentRotation = XMMatrixIdentity();
 	}
-
-	// Добавляем фиксированное вращение вокруг оси X (вперед)
-	XMMATRIX additionalRotation = XMMatrixRotationX(rotationAngleIncrement);
+	XMVECTOR axis = XMLoadFloat3(&rotationAxis);
+	XMMATRIX additionalRotation = XMMatrixRotationAxis(axis, -rotationAngleIncrement); // Инвертируем угол
 	XMMATRIX newRotation = XMMatrixMultiply(currentRotation, additionalRotation);
-
-	// Сохраняем новую матрицу вращения
 	Planet->SetRotationMatrix(newRotation);
 
-	// Обновление позиции камеры
-	m_Camera->SetPosition(position.x, position.y + 10.0f, position.z - 10.0f);
+	UpdateCameraPosition();
 }
+
 void RenderManager::MoveBarrelBackward()
 {
-	planetRotationAngle += -0.1f;
-	// Устанавливаем флаг, что бочка движется назад
 	isMovingBackward = true;
 
-	// Перемещение бочки назад
 	XMFLOAT3 position = Planet->GetPosition();
-	position.z -= 0.1f;
+	XMFLOAT3 direction = GetCameraDirection();
+
+	const float moveSpeed = 0.1f;
+
+	position.x -= direction.x * moveSpeed;
+	position.z -= direction.z * moveSpeed;
 	Planet->SetPosition(position.x, position.y, position.z);
 
-	// Фиксированное вращение вокруг оси X (например, 5 градусов за движение)
-	constexpr float rotationAngleIncrement = XMConvertToRadians(5.0f); // Фиксированный угол (5 градусов)
+	// Ось вращения та же, но вращаем в противоположную сторону
+	XMFLOAT3 rotationAxis = { -direction.z, 0.0f, direction.x };
+	float length = sqrt(rotationAxis.x * rotationAxis.x + rotationAxis.z * rotationAxis.z);
+	if (length > 0.0f)
+	{
+		rotationAxis.x /= length;
+		rotationAxis.z /= length;
+	}
 
-	// Получаем текущую матрицу вращения
+	constexpr float rotationAngleIncrement = XMConvertToRadians(5.0f);
 	XMMATRIX currentRotation = Planet->GetRotationMatrix();
 	if (XMMatrixIsIdentity(currentRotation))
 	{
 		currentRotation = XMMatrixIdentity();
 	}
-
-	// Добавляем фиксированное вращение вокруг оси X (назад)
-	XMMATRIX additionalRotation = XMMatrixRotationX(-rotationAngleIncrement); // Обратное вращение
+	XMVECTOR axis = XMLoadFloat3(&rotationAxis);
+	XMMATRIX additionalRotation = XMMatrixRotationAxis(axis, rotationAngleIncrement); // Убираем инверсию
 	XMMATRIX newRotation = XMMatrixMultiply(currentRotation, additionalRotation);
-
-	// Сохраняем новую матрицу вращения
 	Planet->SetRotationMatrix(newRotation);
 
-	// Обновление позиции камеры
-	m_Camera->SetPosition(position.x, position.y + 10.0f, position.z - 10.0f);
+	UpdateCameraPosition();
 }
+
 void RenderManager::MoveBarrelLeft()
 {
 	isMovingLeft = true;
 
-	// Перемещение бочки влево
 	XMFLOAT3 position = Planet->GetPosition();
-	position.x -= 0.1f;
+	XMFLOAT3 direction = GetCameraDirection();
+
+	const float moveSpeed = 0.1f;
+
+	XMFLOAT3 leftDirection = { -direction.z, 0.0f, direction.x };
+	position.x += leftDirection.x * moveSpeed;
+	position.z += leftDirection.z * moveSpeed;
 	Planet->SetPosition(position.x, position.y, position.z);
 
-	// Фиксированное вращение вокруг оси Z (влево)
-	constexpr float rotationAngleIncrement = XMConvertToRadians(5.0f); // Фиксированный угол (5 градусов)
+	// Ось вращения — перпендикулярна направлению движения влево
+	XMFLOAT3 rotationAxis = { -leftDirection.z, 0.0f, leftDirection.x };
+	float length = sqrt(rotationAxis.x * rotationAxis.x + rotationAxis.z * rotationAxis.z);
+	if (length > 0.0f)
+	{
+		rotationAxis.x /= length;
+		rotationAxis.z /= length;
+	}
 
-	// Получаем текущую матрицу вращения
+	constexpr float rotationAngleIncrement = XMConvertToRadians(5.0f);
 	XMMATRIX currentRotation = Planet->GetRotationMatrix();
 	if (XMMatrixIsIdentity(currentRotation))
 	{
 		currentRotation = XMMatrixIdentity();
 	}
-
-	// Убираем резкий поворот на 90 градусов вокруг оси Y и добавляем фиксированное вращение вокруг оси Z
-	XMMATRIX additionalRotation = XMMatrixRotationZ(rotationAngleIncrement);
+	XMVECTOR axis = XMLoadFloat3(&rotationAxis);
+	XMMATRIX additionalRotation = XMMatrixRotationAxis(axis, -rotationAngleIncrement); // Инвертируем угол
 	XMMATRIX newRotation = XMMatrixMultiply(currentRotation, additionalRotation);
-
-	// Сохраняем новую матрицу вращения
 	Planet->SetRotationMatrix(newRotation);
 
-	// Обновление позиции камеры
-	m_Camera->SetPosition(position.x, position.y + 10.0f, position.z - 10.0f);
+	UpdateCameraPosition();
 }
+
 void RenderManager::MoveBarrelRight()
 {
 	isMovingRight = true;
 
-	// Перемещение бочки вправо
 	XMFLOAT3 position = Planet->GetPosition();
-	position.x += 0.1f;
+	XMFLOAT3 direction = GetCameraDirection();
+
+	const float moveSpeed = 0.1f;
+
+	XMFLOAT3 rightDirection = { direction.z, 0.0f, -direction.x };
+	position.x += rightDirection.x * moveSpeed;
+	position.z += rightDirection.z * moveSpeed;
 	Planet->SetPosition(position.x, position.y, position.z);
 
-	// Фиксированное вращение вокруг оси Z (вправо)
-	constexpr float rotationAngleIncrement = XMConvertToRadians(5.0f); // Фиксированный угол (5 градусов)
+	// Ось вращения — перпендикулярна направлению движения вправо
+	XMFLOAT3 rotationAxis = { -rightDirection.z, 0.0f, rightDirection.x };
+	float length = sqrt(rotationAxis.x * rotationAxis.x + rotationAxis.z * rotationAxis.z);
+	if (length > 0.0f)
+	{
+		rotationAxis.x /= length;
+		rotationAxis.z /= length;
+	}
 
-	// Получаем текущую матрицу вращения
+	constexpr float rotationAngleIncrement = XMConvertToRadians(5.0f);
 	XMMATRIX currentRotation = Planet->GetRotationMatrix();
 	if (XMMatrixIsIdentity(currentRotation))
 	{
 		currentRotation = XMMatrixIdentity();
 	}
-
-	// Убираем резкий поворот на 90 градусов вокруг оси Y и добавляем фиксированное вращение вокруг оси Z
-	XMMATRIX additionalRotation = XMMatrixRotationZ(-rotationAngleIncrement);
+	XMVECTOR axis = XMLoadFloat3(&rotationAxis);
+	XMMATRIX additionalRotation = XMMatrixRotationAxis(axis, -rotationAngleIncrement); // В обратную сторону
 	XMMATRIX newRotation = XMMatrixMultiply(currentRotation, additionalRotation);
-
-	// Сохраняем новую матрицу вращения
 	Planet->SetRotationMatrix(newRotation);
 
-	// Обновление позиции камеры
-	m_Camera->SetPosition(position.x, position.y + 10.0f, position.z - 10.0f);
+	UpdateCameraPosition();
 }
 
 
 //Повороты камеры
 void RenderManager::TurnLeft()
 {
-	//if (isCameraFixed) return;
-	float rotationSpeed = 5.0f;
-	XMFLOAT3 rotation = m_Camera->GetRotation();
-	rotation.y -= rotationSpeed;
-	m_Camera->SetRotation(rotation.x, rotation.y, rotation.z);
+	constexpr float rotationSpeed = XMConvertToRadians(5.0f); // В радианах
+	cameraYaw -= rotationSpeed;
+	UpdateCameraPosition();
 }
+
 void RenderManager::TurnRight()
 {
-	//if (isCameraFixed) return;
-	float rotationSpeed = 5.0f;
-	XMFLOAT3 rotation = m_Camera->GetRotation();
-	rotation.y += rotationSpeed;
-	m_Camera->SetRotation(rotation.x, rotation.y, rotation.z);
+	constexpr float rotationSpeed = XMConvertToRadians(5.0f);
+	cameraYaw += rotationSpeed;
+	UpdateCameraPosition();
 }
+
 void RenderManager::RotateCameraUp()
 {
-	//if (isCameraFixed) return;
-	float rotationSpeed = 5.0f;
-	XMFLOAT3 rotation = m_Camera->GetRotation();
-
-	rotation.x -= rotationSpeed;  // Вращаем камеру вверх
-
-	// Ограничиваем наклон
-	if (rotation.x < -89.0f) rotation.x = -89.0f;
-
-	m_Camera->SetRotation(rotation.x, rotation.y, rotation.z);
+	constexpr float rotationSpeed = XMConvertToRadians(5.0f);
+	cameraPitch += rotationSpeed;
+	if (cameraPitch > XMConvertToRadians(89.0f)) cameraPitch = XMConvertToRadians(89.0f); // Ограничение
+	UpdateCameraPosition();
 }
+
 void RenderManager::RotateCameraDown()
 {
-	//if (isCameraFixed) return; 
-	float rotationSpeed = 5.0f;
-	XMFLOAT3 rotation = m_Camera->GetRotation();
-
-	rotation.x += rotationSpeed;  // Вращаем камеру вниз
-
-	// Ограничиваем наклон
-	if (rotation.x > 89.0f) rotation.x = 89.0f;
-
-	m_Camera->SetRotation(rotation.x, rotation.y, rotation.z);
+	constexpr float rotationSpeed = XMConvertToRadians(5.0f);
+	cameraPitch -= rotationSpeed;
+	if (cameraPitch < XMConvertToRadians(-89.0f)) cameraPitch = XMConvertToRadians(-89.0f); // Ограничение
+	UpdateCameraPosition();
 }
+
 void RenderManager::UpdateMouseMovement(int deltaX, int deltaY)
 {
-	//if (isCameraFixed) return;
+	float sensitivity = 0.001f; // Чувствительность в радианах на пиксель
+	cameraYaw -= deltaX * sensitivity; // Инвертируем для естественного управления
+	cameraPitch -= deltaY * sensitivity; // Оставляем как есть
 
-	float sensitivity = 0.1f; // Настроим чувствительность
+	// Ограничиваем pitch
+	if (cameraPitch > XMConvertToRadians(89.0f)) cameraPitch = XMConvertToRadians(89.0f);
+	if (cameraPitch < XMConvertToRadians(-89.0f)) cameraPitch = XMConvertToRadians(-89.0f);
 
-	float yaw = deltaX * sensitivity;
-	float pitch = deltaY * sensitivity; // Инвертируем движение вверх-вниз
-
-	XMFLOAT3 rotation = m_Camera->GetRotation();
-
-	rotation.y += yaw;   // Вращение влево-вправо
-	rotation.x += pitch; // Вращение вверх-вниз (без инверсии)
-
-	// Ограничим наклон головы, чтобы камера не переворачивалась
-	if (rotation.x > 89.0f) rotation.x = 89.0f;
-	if (rotation.x < -89.0f) rotation.x = -89.0f;
-
-	m_Camera->SetRotation(rotation.x, rotation.y, rotation.z);
+	UpdateCameraPosition();
 }
 
 
+void RenderManager::UpdateCameraPosition()
+{
+	// Получаем позицию планеты
+	XMFLOAT3 planetPos = Planet->GetPosition();
+
+	// Вычисляем позицию камеры в сферических координатах
+	float x = cameraDistance * cos(cameraPitch) * sin(cameraYaw);
+	float y = cameraDistance * sin(cameraPitch);
+	float z = cameraDistance * cos(cameraPitch) * cos(cameraYaw);
+
+	// Устанавливаем позицию камеры относительно планеты
+	XMFLOAT3 cameraPos = { planetPos.x + x, planetPos.y + y, planetPos.z + z };
+	m_Camera->SetPosition(cameraPos.x, cameraPos.y, cameraPos.z);
+
+	// Направляем камеру на центр планеты
+	XMVECTOR cameraPosition = XMLoadFloat3(&cameraPos);
+	XMVECTOR planetPosition = XMLoadFloat3(&planetPos);
+	XMVECTOR directionToPlanet = XMVectorSubtract(planetPosition, cameraPosition);
+	directionToPlanet = XMVector3Normalize(directionToPlanet);
+
+	// Вычисляем углы вращения камеры, чтобы она смотрела на планету
+	float pitch = asinf(-XMVectorGetY(directionToPlanet));
+	float yaw = atan2f(XMVectorGetX(directionToPlanet), XMVectorGetZ(directionToPlanet));
+
+	m_Camera->SetRotation(XMConvertToDegrees(pitch), XMConvertToDegrees(yaw), 0.0f);
+}
+
+void RenderManager::UpdateMouseWheel(int wheelDelta)
+{
+	const float zoomSpeed = 0.5f; // Скорость зума
+	cameraDistance -= wheelDelta * zoomSpeed / 120.0f; // Нормализуем (±120 — стандартное значение)
+
+	// Ограничиваем расстояние
+	if (cameraDistance < 5.0f) cameraDistance = 5.0f;  // Минимальное расстояние
+	if (cameraDistance > 50.0f) cameraDistance = 50.0f; // Максимальное расстояние
+
+	UpdateCameraPosition(); // Обновляем позицию камеры
+}
+
+XMFLOAT3 RenderManager::GetCameraDirection()
+{
+	// Вычисляем вектор направления, куда смотрит камера (от камеры к планете)
+	float dirX = -sin(cameraYaw); // Инвертируем
+	float dirZ = -cos(cameraYaw); // Инвертируем
+	XMFLOAT3 direction = { dirX, 0.0f, dirZ };
+	return direction;
+}
 
 bool RenderManager::Render(HWND hwnd)
 {
@@ -297,6 +371,8 @@ bool RenderManager::Render(HWND hwnd)
 	m_Direct3D->GetWorldMatrix(worldMatrix);
 	m_Camera->GetViewMatrix(viewMatrix);
 	m_Direct3D->GetProjectionMatrix(projectionMatrix);
+
+	UpdateCameraPosition();
 
 	for (int i = 0; i < 10; i++) {
 		if (!Barrel[i]->IsAttached() && Planet->CheckCollisionSphere(Barrel[i])) {
@@ -445,6 +521,28 @@ bool RenderManager::Render(HWND hwnd)
 		worldMatrix = XMMatrixIdentity();
 	}
 
+	if (Floor)
+	{
+		XMFLOAT3 localPosition = Floor->GetPosition();
+		float x = localPosition.x;
+		float y = localPosition.y;
+		float z = localPosition.z;
+
+		XMMATRIX translationMatrix = XMMatrixTranslation(x, y, z);
+		XMMATRIX rotationMatrix = Floor->GetRotationMatrix();
+		if (XMMatrixIsIdentity(rotationMatrix))
+		{
+			rotationMatrix = XMMatrixIdentity();
+		}
+
+		XMMATRIX modelMatrix = XMMatrixMultiply(rotationMatrix, translationMatrix);
+
+		Floor->Render(m_Direct3D->GetDeviceContext());
+		result = m_TextureShader->Render(m_Direct3D->GetDeviceContext(), Floor->GetIndexCount(), modelMatrix, viewMatrix, projectionMatrix, Floor->GetTexture());
+		if (!result) return false;
+		worldMatrix = XMMatrixIdentity();
+	}
+
 	// Конец сцены
 	m_Direct3D->EndScene();
 
@@ -488,6 +586,12 @@ void RenderManager::Shutdown()
 	{
 		delete m_Camera;
 		m_Camera = 0;
+	}
+	
+	if (Floor) {
+		Floor->Shutdown();
+		delete Floor;
+		Floor = 0;
 	}
 
 	if (Planet) {

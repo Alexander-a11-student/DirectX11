@@ -1,8 +1,9 @@
-#include "inputdevice.h"
+Ôªø#include "inputdevice.h"
 
 
 InputDevice::InputDevice()
 {
+	m_mouseWheelDelta = 0; // –ò–Ω–∏—Ü–∏–∞–ª–∏–∑–∞—Ü–∏—è –Ω–æ–≤–æ–π –ø–µ—Ä–µ–º–µ–Ω–Ω–æ–π
 }
 
 
@@ -16,21 +17,23 @@ InputDevice::~InputDevice()
 }
 
 
-void InputDevice::Initialize()
+void InputDevice::Initialize(HWND hwnd)
 {
+	m_hwnd = hwnd;
 	int i;
-
 	for (i = 0; i < 256; i++)
 	{
 		m_keys[i] = false;
 	}
 	m_mouseButtons[0] = false;
 	m_mouseButtons[1] = false;
+	m_mouseX = 750; // –¶–µ–Ω—Ç—Ä –æ–∫–Ω–∞ 1500x1500
+	m_mouseY = 750;
+	m_mouseDeltaX = 0;
+	m_mouseDeltaY = 0;
+	m_mouseWheelDelta = 0;
 
-	m_mouseX = 0;
-	m_mouseY = 0;
-
-	return;
+	ShowCursor(FALSE); // –°–∫—Ä—ã–≤–∞–µ–º –∫—É—Ä—Å–æ—Ä
 }
 
 
@@ -82,19 +85,30 @@ void InputDevice::GetMousePosition(int& x, int& y)
 
 void InputDevice::UpdateMouseDelta(int x, int y)
 {
-	m_mouseDeltaX = x - m_mouseX;
-	m_mouseDeltaY = y - m_mouseY;
+	m_mouseDeltaX = x - 750;
+	m_mouseDeltaY = y - 750;
 
-	m_mouseX = x;
-	m_mouseY = y;
+	POINT center = { 750, 750 };
+	ClientToScreen(m_hwnd, &center);
+	SetCursorPos(center.x, center.y);
 }
 
 void InputDevice::GetMouseDelta(int& deltaX, int& deltaY)
 {
 	deltaX = m_mouseDeltaX;
 	deltaY = m_mouseDeltaY;
-
-	// —·‡Ò˚‚‡ÂÏ ÔÓÒÎÂ ˜ÚÂÌËˇ, ˜ÚÓ·˚ ÌÂ Ì‡Í‡ÔÎË‚‡ÎËÒ¸ ÁÌ‡˜ÂÌËˇ
 	m_mouseDeltaX = 0;
 	m_mouseDeltaY = 0;
+}
+
+void InputDevice::UpdateMouseWheel(int delta)
+{
+	m_mouseWheelDelta = delta; // –°–æ—Ö—Ä–∞–Ω—è–µ–º –¥–µ–ª—å—Ç—É –ø—Ä–æ–∫—Ä—É—Ç–∫–∏
+}
+
+int InputDevice::GetMouseWheelDelta()
+{
+	int delta = m_mouseWheelDelta;
+	m_mouseWheelDelta = 0; // –°–±—Ä–∞—Å—ã–≤–∞–µ–º –ø–æ—Å–ª–µ —á—Ç–µ–Ω–∏—è
+	return delta;
 }

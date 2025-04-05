@@ -52,12 +52,17 @@ public:
 	void RotateCameraUp();
 	void RotateCameraDown();
 	void UpdateMouseMovement(int deltaX, int deltaY);
+	void UpdateCameraPosition();
+	void UpdateMouseWheel(int wheelDelta); // Новый метод для зума
 
 
 	void MoveBarrelForward();
 	void MoveBarrelBackward();
 	void MoveBarrelLeft();
 	void MoveBarrelRight();
+
+	XMFLOAT3 GetCameraDirection(); // Новый метод для получения вектора направления
+	// Другие методы...
 
 	
 
@@ -75,6 +80,8 @@ private:
 
 	ModelClass* Barrel[10];
 
+	ModelClass* Floor;
+
 	bool isMovingForward = false;
 	bool isMovingBackward = false;
 	bool isMovingLeft = false;
@@ -83,10 +90,11 @@ private:
 	float rotationAngle = 0.0f;
 	float currentAngle = 0.0f;
 
-	float planetRotationAngle = 0.0f;
+	float cameraDistance; // Расстояние от центра планеты до камеры
+	float cameraYaw;      // Угол поворота вокруг оси Y (горизонталь)
+	float cameraPitch;    // Угол наклона (вертикаль)
 
-	float Rotation_X_planet = 0.0f; // Угол вращения планеты вокруг оси X (в радианах)
-	float Rotation_Z_planet = 0.0f; // Угол вращения планеты вокруг оси Z (в радианах)
+
 
 };
 

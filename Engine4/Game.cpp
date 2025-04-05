@@ -32,25 +32,19 @@ bool Game::Initialize()
 	screenHeight = 1500;
 
 	m_Input = new InputDevice;
-	m_Input->Initialize();
-	
 	m_Display = new Display1();
+
 	m_Display->Initialize(this, screenWidth, screenHeight, false);
 	m_hwnd = m_Display->GetHwnd();
+	m_Input->Initialize(m_hwnd);
 	
-	
+
 	m_RenderManager = new RenderManager;
 	result = m_RenderManager->Initialize(screenWidth, screenHeight, m_hwnd); //Вот это важно!!!
 	if (!result)
 	{
 		return false;
 	}
-
-	// Ограничиваем курсор мыши в пределах окна приложения
-	RECT rect;
-	GetClientRect(m_hwnd, &rect);
-	MapWindowPoints(m_hwnd, nullptr, (POINT*)&rect, 2);
-	ClipCursor(&rect);
 
 	return true;
 }
@@ -243,6 +237,23 @@ LRESULT CALLBACK Game::MessageHandler(HWND hwnd, UINT umsg, WPARAM wparam, LPARA
 			m_RenderManager->UpdateMouseMovement(mouseXDelta, mouseYDelta);
 		}
 
+		return 0;
+	}
+
+	// Добавляем обработку колесика
+	case WM_MOUSEWHEEL:
+	{
+		int wheelDelta = GET_WHEEL_DELTA_WPARAM(wparam); // Получаем дельту прокрутки
+		if (m_Input)
+		{
+			m_Input->UpdateMouseWheel(wheelDelta);
+		}
+
+		int wheelDeltaValue = m_Input->GetMouseWheelDelta();
+		if (m_RenderManager)
+		{
+			m_RenderManager->UpdateMouseWheel(wheelDeltaValue); // Передаём дельту в RenderManager
+		}
 		return 0;
 	}
 

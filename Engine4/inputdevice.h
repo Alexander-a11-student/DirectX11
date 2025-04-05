@@ -6,6 +6,8 @@
 // Class name: InputClass
 ////////////////////////////////////////////////////////////////////////////////
 #include <windowsx.h>
+#include <windows.h> // Добавляем для HWND и функций Windows API
+
 
 class InputDevice
 {
@@ -14,7 +16,7 @@ public:
 	InputDevice(const InputDevice&);
 	~InputDevice();
 
-	void Initialize();
+	void Initialize(HWND hwnd);
 
 	void KeyDown(unsigned int);
 	void KeyUp(unsigned int);
@@ -29,13 +31,19 @@ public:
 	void UpdateMouseDelta(int x, int y);
 	void GetMouseDelta(int& deltaX, int& deltaY);
 
+	// Новые методы для колесика
+	void UpdateMouseWheel(int);
+	int GetMouseWheelDelta();
+
 	int m_mouseDeltaX = 0; 
 	int m_mouseDeltaY = 0; // Разница по осям
 
 private:
+	HWND m_hwnd;
 	bool m_keys[256];
-	bool m_mouseButtons[2]; // 0 - левая кнопка, 1 - правая кнопка
+	bool m_mouseButtons[2]; 
 	int m_mouseX, m_mouseY;
+	int m_mouseWheelDelta;
 
 };
 
