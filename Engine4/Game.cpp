@@ -112,7 +112,7 @@ void Game::Run()
 		}
 		else
 		{
-			result = Update();
+			result = Update(m_hwnd);
 			if (!result)
 			{
 				done = true;
@@ -126,7 +126,7 @@ void Game::Run()
 
 
 
-bool Game::Update()
+bool Game::Update(HWND hwnd)
 {
 	bool result;
 
@@ -137,7 +137,7 @@ bool Game::Update()
 		return false;
 	}
 
-	result = m_RenderManager->Update();
+	result = m_RenderManager->Update(hwnd);
 	if (!result)
 	{
 		return false;

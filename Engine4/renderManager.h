@@ -21,6 +21,7 @@
 #include <string>
 #include <iomanip> 
 
+
 /////////////
 // GLOBALS //
 /////////////
@@ -42,7 +43,7 @@ public:
 
 	bool Initialize(int, int, HWND);
 	void Shutdown();
-	bool Update();
+	bool Update(HWND hwnd);
 
 
 
@@ -63,7 +64,7 @@ public:
 
 
 private:
-	bool Render();
+	bool Render(HWND hwnd);
 	MyDirectX* m_Direct3D;
 	CameraClass* m_Camera;
 	TextureShaderClass* m_TextureShader;

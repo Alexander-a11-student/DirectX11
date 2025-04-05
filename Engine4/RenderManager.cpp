@@ -10,14 +10,10 @@ RenderManager::RenderManager()
 	m_TextureShader = 0;
 
 }
-
-
 RenderManager::RenderManager(const RenderManager& other)
 {
 
 }
-
-
 RenderManager::~RenderManager()
 {
 
@@ -98,8 +94,7 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 	return true;
 }
 
-
-
+//Повороты сферы
 void RenderManager::MoveBarrelForward() 
 {
 	planetRotationAngle += 0.1f;
@@ -113,7 +108,7 @@ void RenderManager::MoveBarrelForward()
 	Planet->SetPosition(position.x, position.y, position.z);
 
 	// Фиксированное вращение вокруг оси X (например, 5 градусов за движение)
-	const float rotationAngleIncrement = XMConvertToRadians(5.0f); // Фиксированный угол (5 градусов)
+	constexpr float rotationAngleIncrement = XMConvertToRadians(5.0f); // Фиксированный угол (5 градусов)
 
 	// Получаем текущую матрицу вращения
 	XMMATRIX currentRotation = Planet->GetRotationMatrix();
@@ -132,7 +127,6 @@ void RenderManager::MoveBarrelForward()
 	// Обновление позиции камеры
 	m_Camera->SetPosition(position.x, position.y + 10.0f, position.z - 10.0f);
 }
-
 void RenderManager::MoveBarrelBackward()
 {
 	planetRotationAngle += -0.1f;
@@ -145,7 +139,7 @@ void RenderManager::MoveBarrelBackward()
 	Planet->SetPosition(position.x, position.y, position.z);
 
 	// Фиксированное вращение вокруг оси X (например, 5 градусов за движение)
-	const float rotationAngleIncrement = XMConvertToRadians(5.0f); // Фиксированный угол (5 градусов)
+	constexpr float rotationAngleIncrement = XMConvertToRadians(5.0f); // Фиксированный угол (5 градусов)
 
 	// Получаем текущую матрицу вращения
 	XMMATRIX currentRotation = Planet->GetRotationMatrix();
@@ -164,7 +158,6 @@ void RenderManager::MoveBarrelBackward()
 	// Обновление позиции камеры
 	m_Camera->SetPosition(position.x, position.y + 10.0f, position.z - 10.0f);
 }
-
 void RenderManager::MoveBarrelLeft()
 {
 	isMovingLeft = true;
@@ -175,7 +168,7 @@ void RenderManager::MoveBarrelLeft()
 	Planet->SetPosition(position.x, position.y, position.z);
 
 	// Фиксированное вращение вокруг оси Z (влево)
-	const float rotationAngleIncrement = XMConvertToRadians(5.0f); // Фиксированный угол (5 градусов)
+	constexpr float rotationAngleIncrement = XMConvertToRadians(5.0f); // Фиксированный угол (5 градусов)
 
 	// Получаем текущую матрицу вращения
 	XMMATRIX currentRotation = Planet->GetRotationMatrix();
@@ -194,7 +187,6 @@ void RenderManager::MoveBarrelLeft()
 	// Обновление позиции камеры
 	m_Camera->SetPosition(position.x, position.y + 10.0f, position.z - 10.0f);
 }
-
 void RenderManager::MoveBarrelRight()
 {
 	isMovingRight = true;
@@ -205,7 +197,7 @@ void RenderManager::MoveBarrelRight()
 	Planet->SetPosition(position.x, position.y, position.z);
 
 	// Фиксированное вращение вокруг оси Z (вправо)
-	const float rotationAngleIncrement = XMConvertToRadians(5.0f); // Фиксированный угол (5 градусов)
+	constexpr float rotationAngleIncrement = XMConvertToRadians(5.0f); // Фиксированный угол (5 градусов)
 
 	// Получаем текущую матрицу вращения
 	XMMATRIX currentRotation = Planet->GetRotationMatrix();
@@ -226,10 +218,7 @@ void RenderManager::MoveBarrelRight()
 }
 
 
-
-
-
-
+//Повороты камеры
 void RenderManager::TurnLeft()
 {
 	//if (isCameraFixed) return;
@@ -295,7 +284,7 @@ void RenderManager::UpdateMouseMovement(int deltaX, int deltaY)
 
 
 
-bool RenderManager::Render()
+bool RenderManager::Render(HWND hwnd)
 {
 	timeGame += 0.0001f;
 
@@ -309,96 +298,115 @@ bool RenderManager::Render()
 	m_Camera->GetViewMatrix(viewMatrix);
 	m_Direct3D->GetProjectionMatrix(projectionMatrix);
 
-	for (int i = 0; i < 10; i++)
-	{
-		if (!Barrel[i]->IsAttached() && Planet->CheckCollision(Barrel[i]))
-		{
+	for (int i = 0; i < 10; i++) {
+		if (!Barrel[i]->IsAttached() && Planet->CheckCollisionSphere(Barrel[i])) {
+			Barrel[i]->SetAttached(true);
+
 			XMFLOAT3 planetPos = Planet->GetPosition();
 			XMFLOAT3 barrelPos = Barrel[i]->GetPosition();
-			XMFLOAT3 offset = {
+
+			// Вычисляем вектор от центра планеты к бочке
+			XMFLOAT3 direction = {
 				barrelPos.x - planetPos.x,
 				barrelPos.y - planetPos.y,
 				barrelPos.z - planetPos.z
 			};
 
-			// Нормализуем offset и устанавливаем бочку на поверхность
-			float length = sqrt(offset.x * offset.x + offset.y * offset.y + offset.z * offset.z);
+			// Нормализуем вектор направления
+			float length = sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
+			if (length > 0.0f) {
+				direction.x /= length;
+				direction.y /= length;
+				direction.z /= length;
+			}
+
+			// Устанавливаем бочку на поверхность планеты
 			float planetRadius = Planet->GetSize().x / 2.0f;
 			float barrelRadius = Barrel[i]->GetSize().x / 2.0f;
-			float targetDistance = planetRadius + barrelRadius;
+			float distanceToSurface = planetRadius + barrelRadius;
 
-			XMFLOAT3 direction = {
-				offset.x / length,
-				offset.y / length,
-				offset.z / length
+			XMFLOAT3 globalOffset = {
+				direction.x * distanceToSurface,
+				direction.y * distanceToSurface,
+				direction.z * distanceToSurface
 			};
 
-			// Устанавливаем позицию бочки на поверхности
-			Barrel[i]->SetPosition(
-				planetPos.x + direction.x * targetDistance,
-				planetPos.y + direction.y * targetDistance,
-				planetPos.z + direction.z * targetDistance
-			);
-
-			// Сохраняем смещение относительно центра планеты
-			XMFLOAT3 normalizedOffset = {
-				direction.x * targetDistance,
-				direction.y * targetDistance,
-				direction.z * targetDistance
-			};
-			Barrel[i]->SetOffset(normalizedOffset);
-			Barrel[i]->SetAttached(true);
-			Barrel[i]->SetAttachmentBaseAngle(planetRotationAngle);
-
-			// Устанавливаем начальную ориентацию бочки
-			XMVECTOR up = XMVectorSet(direction.x, direction.y, direction.z, 0.0f);
-			XMMATRIX rotationMatrix = XMMatrixLookAtLH(
-				XMVectorZero(),
-				up,
-				XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f)
-			);
-			rotationMatrix = XMMatrixTranspose(rotationMatrix);
-			Barrel[i]->SetRotationMatrix(rotationMatrix);
-		}
-		else if (Barrel[i]->IsAttached())
-		{
-			XMFLOAT3 planetPos = Planet->GetPosition();
-			XMFLOAT3 offset = Barrel[i]->GetOffset();
-
-			// Применяем текущее вращение планеты к смещению
-			XMVECTOR offsetVector = XMLoadFloat3(&offset);
+			// Получаем текущую матрицу вращения планеты
 			XMMATRIX planetRotation = Planet->GetRotationMatrix();
-			XMVECTOR rotatedOffset = XMVector3Transform(offsetVector, planetRotation);
+			if (XMMatrixIsIdentity(planetRotation)) {
+				planetRotation = XMMatrixIdentity();
+			}
 
-			XMFLOAT3 newOffset;
-			XMStoreFloat3(&newOffset, rotatedOffset);
+			// Вычисляем обратную матрицу вращения планеты
+			XMMATRIX inversePlanetRotation = XMMatrixInverse(nullptr, planetRotation);
+			Barrel[i]->SetInitialInverseRotation(inversePlanetRotation);
+
+			// Преобразуем глобальное смещение в локальное
+			XMVECTOR globalOffsetVector = XMLoadFloat3(&globalOffset);
+			XMVECTOR localOffsetVector = XMVector3Transform(globalOffsetVector, inversePlanetRotation);
+			XMFLOAT3 localOffset;
+			XMStoreFloat3(&localOffset, localOffsetVector);
+			Barrel[i]->SetLocalOffset(localOffset);
+
+			// Сохраняем начальную матрицу вращения бочки
+			XMMATRIX barrelRotation = Barrel[i]->GetRotationMatrix();
+			if (XMMatrixIsIdentity(barrelRotation)) {
+				barrelRotation = XMMatrixIdentity();
+			}
+			Barrel[i]->SetInitialRotation(barrelRotation);
+
+			// Устанавливаем начальную позицию
+			Barrel[i]->SetPosition(
+				planetPos.x + globalOffset.x,
+				planetPos.y + globalOffset.y,
+				planetPos.z + globalOffset.z
+			);
+
+			Barrel[i]->SetOffset(globalOffset);
+		}
+		else if (Barrel[i]->IsAttached()) {
+			XMFLOAT3 planetPos = Planet->GetPosition();
+			XMFLOAT3 localOffset = Barrel[i]->GetLocalOffset();
+
+			// Получаем текущую матрицу вращения планеты
+			XMMATRIX planetRotation = Planet->GetRotationMatrix();
+			if (XMMatrixIsIdentity(planetRotation)) {
+				planetRotation = XMMatrixIdentity();
+			}
+
+			// Преобразуем локальное смещение в глобальное
+			XMVECTOR localOffsetVector = XMLoadFloat3(&localOffset);
+			XMVECTOR globalOffsetVector = XMVector3Transform(localOffsetVector, planetRotation);
+			XMFLOAT3 globalOffset;
+			XMStoreFloat3(&globalOffset, globalOffsetVector);
 
 			// Обновляем позицию бочки
 			Barrel[i]->SetPosition(
-				planetPos.x + newOffset.x,
-				planetPos.y + newOffset.y,
-				planetPos.z + newOffset.z
+				planetPos.x + globalOffset.x,
+				planetPos.y + globalOffset.y,
+				planetPos.z + globalOffset.z
 			);
 
-			// Обновляем ориентацию бочки на основе новой нормали
-			float length = sqrt(newOffset.x * newOffset.x + newOffset.y * newOffset.y + newOffset.z * newOffset.z);
-			XMFLOAT3 normal = {
-				newOffset.x / length,
-				newOffset.y / length,
-				newOffset.z / length
-			};
-			XMVECTOR up = XMVectorSet(normal.x, normal.y, normal.z, 0.0f);
-			XMMATRIX rotationMatrix = XMMatrixLookAtLH(
-				XMVectorZero(),
-				up,
-				XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f)
-			);
-			rotationMatrix = XMMatrixTranspose(rotationMatrix);
-			Barrel[i]->SetRotationMatrix(rotationMatrix);
+			// Получаем начальную матрицу вращения бочки
+			XMMATRIX initialBarrelRotation = Barrel[i]->GetInitialRotation();
+			if (XMMatrixIsIdentity(initialBarrelRotation)) {
+				initialBarrelRotation = XMMatrixIdentity();
+			}
+
+			// Получаем начальную обратную матрицу вращения планеты
+			XMMATRIX initialInversePlanetRotation = Barrel[i]->GetInitialInverseRotation();
+
+			// Вычисляем относительное вращение планеты с момента прикрепления
+			XMMATRIX relativeRotation = XMMatrixMultiply(initialInversePlanetRotation, planetRotation);
+
+			// Применяем относительное вращение планеты к начальной ориентации бочки
+			XMMATRIX barrelRotation = XMMatrixMultiply(initialBarrelRotation, relativeRotation);
+
+			// Устанавливаем новую матрицу вращения бочки
+			Barrel[i]->SetRotationMatrix(barrelRotation);
 		}
 
-		if (Barrel[i])
-		{
+		if (Barrel[i]) {
 			XMFLOAT3 localPosition = Barrel[i]->GetPosition();
 			float x = localPosition.x;
 			float y = localPosition.y;
@@ -443,11 +451,11 @@ bool RenderManager::Render()
 	return true;
 }
 
-bool RenderManager::Update()
+bool RenderManager::Update(HWND hwnd)
 {
 	bool result;
 
-	result = Render();
+	result = Render(hwnd);
 	if (!result)
 	{
 		return false;

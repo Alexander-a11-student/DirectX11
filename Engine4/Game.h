@@ -45,7 +45,7 @@ public:
 
 
 private:
-	bool Update();
+	bool Update(HWND hwnd);
 	//void InitializeWindows(int&, int&);
 	//void ShutdownWindows();
 

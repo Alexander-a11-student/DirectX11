@@ -77,10 +77,16 @@ public:
 	void SetSize(float radius);
 	bool CheckCollisionSphere(ModelClass* other);
 
+	XMFLOAT3 m_localOffset; // Локальное смещение относительно планеты
 	XMMATRIX m_initialInverseRotation; 
+	XMMATRIX m_initialRotation; // Начальная матрица вращения бочки в момент прикрепления
 
+	void SetLocalOffset(XMFLOAT3 offset) { m_localOffset = offset; }
+	XMFLOAT3 GetLocalOffset() { return m_localOffset; }
 	void SetInitialInverseRotation(XMMATRIX matrix) { m_initialInverseRotation = matrix; }
 	XMMATRIX GetInitialInverseRotation() { return m_initialInverseRotation; }
+	void SetInitialRotation(XMMATRIX matrix) { m_initialRotation = matrix; }
+	XMMATRIX GetInitialRotation() { return m_initialRotation; }
 
 
 	XMMATRIX modelMatrix;
