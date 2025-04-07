@@ -34,6 +34,9 @@
     <Filter Include="Source Files\Models\Planets">
       <UniqueIdentifier>{3b37818b-39f4-4e9d-9692-e9b729e139a1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Errors">
+      <UniqueIdentifier>{bcfcbf3e-f6a5-4cc2-b96a-114e3892d6a4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inputdevice.h">
@@ -78,6 +81,12 @@
     <ClInclude Include="textureclass.h">
       <Filter>Header Files\Render</Filter>
     </ClInclude>
+    <ClInclude Include="LightClass.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="LightShaderClass.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -111,6 +120,12 @@
       <Filter>Source Files\Render</Filter>
     </ClCompile>
     <ClCompile Include="textureclass.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="LightClass.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="LightShaderClass.cpp">
       <Filter>Source Files\Render</Filter>
     </ClCompile>
   </ItemGroup>
@@ -159,6 +174,12 @@
       <Filter>Shaders</Filter>
     </None>
     <None Include="TextureVertexShader.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Pixel_Light.hlsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Vertex_Light.hlsl">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

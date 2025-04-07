@@ -7,7 +7,9 @@ RenderManager::RenderManager()
 {
 	m_Direct3D = 0;
 	m_Camera = 0;
-	m_TextureShader = 0;
+	m_LightShader = 0;
+	m_Light = 0;
+
 
 }
 RenderManager::RenderManager(const RenderManager& other)
@@ -104,13 +106,20 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 	Planet->SetPosition(0.0f, 0.0f, 0.0f);
 	Planet->SetSize(2.5f);
 
-	m_TextureShader = new TextureShaderClass;
-	result = m_TextureShader->Initialize(m_Direct3D->GetDevice(), hwnd);
+
+	// Create and initialize the light shader object.
+	m_LightShader = new LightShaderClass;
+
+	result = m_LightShader->Initialize(m_Direct3D->GetDevice(), hwnd);
 	if (!result)
 	{
-		MessageBox(hwnd, L"Could not initialize the texture shader object.", L"Error", MB_OK);
+		MessageBox(hwnd, L"Could not initialize the light shader object.", L"Error", MB_OK);
 		return false;
 	}
+
+	m_Light = new LightClass;
+	m_Light->SetDiffuseColor(1.0f, 1.0f, 1.0f, 1.0f);
+	m_Light->SetDirection(0.0f, 0.0f, 1.0f);
 
 
 	return true;
@@ -299,7 +308,7 @@ void RenderManager::RotateCameraDown()
 void RenderManager::UpdateMouseMovement(int deltaX, int deltaY)
 {
 	float sensitivity = 0.001f; // Чувствительность в радианах на пиксель
-	cameraYaw -= deltaX * sensitivity; // Инвертируем для естественного управления
+	cameraYaw += deltaX * sensitivity; // Инвертируем для естественного управления
 	cameraPitch -= deltaY * sensitivity; // Оставляем как есть
 
 	// Ограничиваем pitch
@@ -493,7 +502,17 @@ bool RenderManager::Render(HWND hwnd)
 			XMMATRIX modelMatrix = XMMatrixMultiply(rotationMatrix, translationMatrix);
 
 			Barrel[i]->Render(m_Direct3D->GetDeviceContext());
-			result = m_TextureShader->Render(m_Direct3D->GetDeviceContext(), Barrel[i]->GetIndexCount(), modelMatrix, viewMatrix, projectionMatrix, Barrel[i]->GetTexture());
+
+			result = m_LightShader->Render(
+				m_Direct3D->GetDeviceContext(),
+				Barrel[i]->GetIndexCount(),
+				modelMatrix,
+				viewMatrix, 
+				projectionMatrix, 
+				Barrel[i]->GetTexture(), 
+				m_Light->GetDirection(), 
+				m_Light->GetDiffuseColor());
+
 			if (!result) return false;
 			worldMatrix = XMMatrixIdentity();
 		}
@@ -516,29 +535,17 @@ bool RenderManager::Render(HWND hwnd)
 		XMMATRIX modelMatrix = XMMatrixMultiply(rotationMatrix, translationMatrix);
 
 		Planet->Render(m_Direct3D->GetDeviceContext());
-		result = m_TextureShader->Render(m_Direct3D->GetDeviceContext(), Planet->GetIndexCount(), modelMatrix, viewMatrix, projectionMatrix, Planet->GetTexture());
-		if (!result) return false;
-		worldMatrix = XMMatrixIdentity();
-	}
+		result = m_LightShader->Render(
+			m_Direct3D->GetDeviceContext(),
+			Planet->GetIndexCount(),
+			modelMatrix,
+			viewMatrix,
+			projectionMatrix,
+			Planet->GetTexture(),
+			m_Light->GetDirection(),
+			m_Light->GetDiffuseColor()
+		);
 
-	if (Floor)
-	{
-		XMFLOAT3 localPosition = Floor->GetPosition();
-		float x = localPosition.x;
-		float y = localPosition.y;
-		float z = localPosition.z;
-
-		XMMATRIX translationMatrix = XMMatrixTranslation(x, y, z);
-		XMMATRIX rotationMatrix = Floor->GetRotationMatrix();
-		if (XMMatrixIsIdentity(rotationMatrix))
-		{
-			rotationMatrix = XMMatrixIdentity();
-		}
-
-		XMMATRIX modelMatrix = XMMatrixMultiply(rotationMatrix, translationMatrix);
-
-		Floor->Render(m_Direct3D->GetDeviceContext());
-		result = m_TextureShader->Render(m_Direct3D->GetDeviceContext(), Floor->GetIndexCount(), modelMatrix, viewMatrix, projectionMatrix, Floor->GetTexture());
 		if (!result) return false;
 		worldMatrix = XMMatrixIdentity();
 	}
@@ -564,6 +571,22 @@ bool RenderManager::Update(HWND hwnd)
 
 void RenderManager::Shutdown()
 {
+
+	// Release the light object.
+	if (m_Light)
+	{	
+		delete m_Light;
+		m_Light = 0;
+	}
+
+	// Release the light shader object.
+	if (m_LightShader)
+	{
+		m_LightShader->Shutdown();
+		delete m_LightShader;
+		m_LightShader = 0;
+	}
+
 	for (int i = 0; i < 10; i++)
 	{
 		if (Barrel[i])
@@ -573,15 +596,6 @@ void RenderManager::Shutdown()
 			Barrel[i] = nullptr;
 		}
 	}
-
-
-	if (m_TextureShader)
-	{
-		m_TextureShader->Shutdown();
-		delete m_TextureShader;
-		m_TextureShader = 0;
-	}
-
 	if (m_Camera)
 	{
 		delete m_Camera;

@@ -37,7 +37,6 @@ void ModelClass::GenerateSphereModel(int slices, int stacks, float radius, const
 	for (int i = 0; i <= stacks; i++)
 	{
 		float phi = static_cast<float>(XM_PI) * i / stacks; // [0..π]	
-		// y = -cos(phi), x,z = sin(phi)*cos/sin(theta)
 		for (int j = 0; j <= slices; j++)
 		{
 			float theta = 2.0f * static_cast<float>(XM_PI) * j / slices;
@@ -51,10 +50,14 @@ void ModelClass::GenerateSphereModel(int slices, int stacks, float radius, const
 			float uRange = 2.0f;  // Ширина диапазона
 			vtx.u = 1.0f + ((float)j / slices) * uRange;
 
-			// v от 1.0 (низ) до 0.0 (верх)
-			
-			//vtx.v = 1.0f - ((float)i / stacks);
+			// v от 0.0 (верх) до 1.0 (низ)
 			vtx.v = (float)i / stacks;
+
+			// Нормаль = нормализованный вектор от центра (0,0,0) к вершине
+			float length = sqrt(vtx.x * vtx.x + vtx.y * vtx.y + vtx.z * vtx.z);
+			vtx.nx = vtx.x / length;
+			vtx.ny = vtx.y / length;
+			vtx.nz = vtx.z / length;
 
 			verts.push_back(vtx);
 		}
@@ -100,7 +103,8 @@ void ModelClass::GenerateSphereModel(int slices, int stacks, float radius, const
 		{
 			const ModelType& v = verts[indices[idx + k]];
 			fout << v.x << " " << v.y << " " << v.z << " "
-				<< v.u << " " << v.v << "\n";
+				<< v.u << " " << v.v << " "
+				<< v.nx << " " << v.ny << " " << v.nz << "\n";
 		}
 		fout << "\n"; // Пустая строка после каждого треугольника
 	}
@@ -214,6 +218,7 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device)
 	{
 		vertices[i].position = XMFLOAT3(m_model[i].x, m_model[i].y, m_model[i].z);
 		vertices[i].texture = XMFLOAT2(m_model[i].u, m_model[i].v);
+		vertices[i].normal = XMFLOAT3(m_model[i].nx, m_model[i].ny, m_model[i].nz);
 
 		indices[i] = i;
 	}
@@ -272,35 +277,28 @@ bool ModelClass::LoadModel(char* filename)
 {
 	ifstream fin;
 	char input;
-	int i;
 
-
-	// Открыть файл модели. 
 	fin.open(filename);
-
-	// Если файл открыть не удалось, то выйти. 
 	if (fin.fail())
 	{
 		return false;
 	}
 
-	// Считать до значения количества вершин. 
 	fin.get(input);
 	while (input != ':')
 	{
 		fin.get(input);
 	}
 
-	// Считать количество вершин. 
 	fin >> m_vertexCount;
-
-	// Установить количество индексов, равное количеству вершин. 
 	m_indexCount = m_vertexCount;
 
-	// Создать модель, используя считанное количество вершин. 
 	m_model = new ModelType[m_vertexCount];
+	if (!m_model)
+	{
+		return false;
+	}
 
-	// Считать до начала данных. 
 	fin.get(input);
 	while (input != ':')
 	{
@@ -309,16 +307,14 @@ bool ModelClass::LoadModel(char* filename)
 	fin.get(input);
 	fin.get(input);
 
-	// Считываем данные вершин. 
-	for (i = 0; i < m_vertexCount; i++)
+	for (int i = 0; i < m_vertexCount; i++)
 	{
 		fin >> m_model[i].x >> m_model[i].y >> m_model[i].z;
 		fin >> m_model[i].u >> m_model[i].v;
+		fin >> m_model[i].nx >> m_model[i].ny >> m_model[i].nz; // Читаем нормали
 	}
 
-	// Закрываем файл модели. 
 	fin.close();
-
 	return true;
 }
 

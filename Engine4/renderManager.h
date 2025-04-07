@@ -13,13 +13,16 @@
 #include "cameraclass.h" 
 #include "modelclass.h" 
 //#include "colorshaderclass.h" 
-#include "textureshaderclass.h"
+//#include "textureshaderclass.h"
 #include <cstdlib>
 #include <ctime>
 #include <algorithm>
 #include <cstdio>
 #include <string>
 #include <iomanip> 
+
+#include "LightShaderClass.h"
+#include "LightClass.h"
 
 
 /////////////
@@ -72,7 +75,6 @@ private:
 	bool Render(HWND hwnd);
 	MyDirectX* m_Direct3D;
 	CameraClass* m_Camera;
-	TextureShaderClass* m_TextureShader;
 
 	//Lab3
 	ModelClass* Planet;
@@ -93,6 +95,10 @@ private:
 	float cameraDistance; // Расстояние от центра планеты до камеры
 	float cameraYaw;      // Угол поворота вокруг оси Y (горизонталь)
 	float cameraPitch;    // Угол наклона (вертикаль)
+
+	//Lab5
+	LightShaderClass* m_LightShader;
+	LightClass* m_Light;
 
 
 
