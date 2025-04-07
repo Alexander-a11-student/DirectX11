@@ -81,19 +81,6 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 		Barrel[i]->SetSize(0.9f);
 	}
 
-
-	Floor = new ModelClass;
-	result = Floor->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), textureFilenameFloor, modelFilenameFloor);
-	if (!result)
-	{
-		MessageBox(hwnd, L"Could not initialize the barrel model object.", L"Error", MB_OK);
-		return false;
-	}
-
-	Floor->SetPosition(0.0f, -1.0f, 0.0f);
-
-
-
 	Planet = new ModelClass();
 	result = Planet->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), textureFilenamePlanet, modelFilenamePlanet);
 	if (!result)
@@ -118,8 +105,12 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 	}
 
 	m_Light = new LightClass;
+
+	m_Light->SetAmbientColor(0.35f, 0.35f, 0.35f, 1.0f);
 	m_Light->SetDiffuseColor(1.0f, 1.0f, 1.0f, 1.0f);
-	m_Light->SetDirection(0.0f, 0.0f, 1.0f);
+	m_Light->SetDirection(1.0f, 0.0f, 1.0f);
+	m_Light->SetSpecularColor(1.0f, 1.0f, 1.0f, 1.0f);
+	m_Light->SetSpecularPower(50.0f);
 
 
 	return true;
@@ -511,7 +502,11 @@ bool RenderManager::Render(HWND hwnd)
 				projectionMatrix, 
 				Barrel[i]->GetTexture(), 
 				m_Light->GetDirection(), 
-				m_Light->GetDiffuseColor());
+				m_Light->GetAmbientColor(),
+				m_Light->GetDiffuseColor(), 
+				m_Camera->GetPosition(), 
+				m_Light->GetSpecularColor(), 
+				m_Light->GetSpecularPower());
 
 			if (!result) return false;
 			worldMatrix = XMMatrixIdentity();
@@ -543,7 +538,11 @@ bool RenderManager::Render(HWND hwnd)
 			projectionMatrix,
 			Planet->GetTexture(),
 			m_Light->GetDirection(),
-			m_Light->GetDiffuseColor()
+			m_Light->GetAmbientColor(),
+			m_Light->GetDiffuseColor(), 
+			m_Camera->GetPosition(), 
+			m_Light->GetSpecularColor(), 
+			m_Light->GetSpecularPower()
 		);
 
 		if (!result) return false;
@@ -600,12 +599,6 @@ void RenderManager::Shutdown()
 	{
 		delete m_Camera;
 		m_Camera = 0;
-	}
-	
-	if (Floor) {
-		Floor->Shutdown();
-		delete Floor;
-		Floor = 0;
 	}
 
 	if (Planet) {

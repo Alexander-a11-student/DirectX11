@@ -82,8 +82,6 @@ private:
 
 	ModelClass* Barrel[10];
 
-	ModelClass* Floor;
-
 	bool isMovingForward = false;
 	bool isMovingBackward = false;
 	bool isMovingLeft = false;
