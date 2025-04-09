@@ -34,10 +34,28 @@ public:
 	XMFLOAT4 GetSpecularColor();
 	float GetSpecularPower();
 
+	//Новое
+	void SetPosition(float, float, float);
+	void SetLookAt(float, float, float);
+
+	void GenerateViewMatrix();
+	void GenerateProjectionMatrix(float, float);
+
+	XMFLOAT3 GetPosition();
+	void GetViewMatrix(XMMATRIX&);
+	void GetProjectionMatrix(XMMATRIX&);
+
 private:
 	XMFLOAT4 m_ambientColor;
 	XMFLOAT4 m_diffuseColor;
 	XMFLOAT3 m_direction;
+
+	XMFLOAT3 m_position;
+	XMFLOAT3 m_lookAt;
+	XMMATRIX m_viewMatrix;
+	XMMATRIX m_projectionMatrix;
+
+
 	XMFLOAT4 m_specularColor;
 	float m_specularPower;
 };

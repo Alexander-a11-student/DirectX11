@@ -37,6 +37,18 @@
     <Filter Include="Source Files\Errors">
       <UniqueIdentifier>{bcfcbf3e-f6a5-4cc2-b96a-114e3892d6a4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Pixel">
+      <UniqueIdentifier>{eb6edc2c-95ac-4343-92bb-1df29c86c8c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Vertex">
+      <UniqueIdentifier>{7c6ab729-e1e6-4cf5-9309-d72f0f359933}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Render\Old">
+      <UniqueIdentifier>{0fb8cd59-f0c7-4b53-8697-c7a1223a5319}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Render\Old">
+      <UniqueIdentifier>{f3f7d451-1aa6-4a9d-a802-5d2d4f7f8142}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inputdevice.h">
@@ -72,12 +84,6 @@
     <ClInclude Include="cameraclass.h">
       <Filter>Header Files\Render</Filter>
     </ClInclude>
-    <ClInclude Include="colorshaderclass.h">
-      <Filter>Header Files\Render</Filter>
-    </ClInclude>
-    <ClInclude Include="textureshaderclass.h">
-      <Filter>Header Files\Render</Filter>
-    </ClInclude>
     <ClInclude Include="textureclass.h">
       <Filter>Header Files\Render</Filter>
     </ClInclude>
@@ -85,6 +91,24 @@
       <Filter>Header Files\Render</Filter>
     </ClInclude>
     <ClInclude Include="LightShaderClass.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="rendertextureclass.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="depthshaderclass.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="colorshaderclass.h">
+      <Filter>Header Files\Render\Old</Filter>
+    </ClInclude>
+    <ClInclude Include="displayplaneclass.h">
+      <Filter>Header Files\Render\Old</Filter>
+    </ClInclude>
+    <ClInclude Include="textureshaderclass.h">
+      <Filter>Header Files\Render\Old</Filter>
+    </ClInclude>
+    <ClInclude Include="shadowshaderclass.h">
       <Filter>Header Files\Render</Filter>
     </ClInclude>
   </ItemGroup>
@@ -107,17 +131,11 @@
     <ClCompile Include="cameraclass.cpp">
       <Filter>Source Files\Render</Filter>
     </ClCompile>
-    <ClCompile Include="colorshaderclass.cpp">
-      <Filter>Source Files\Render</Filter>
-    </ClCompile>
     <ClCompile Include="modelclass.cpp">
       <Filter>Source Files\Render</Filter>
     </ClCompile>
     <ClCompile Include="RenderManager.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="textureshaderclass.cpp">
-      <Filter>Source Files\Render</Filter>
     </ClCompile>
     <ClCompile Include="textureclass.cpp">
       <Filter>Source Files\Render</Filter>
@@ -126,6 +144,24 @@
       <Filter>Source Files\Render</Filter>
     </ClCompile>
     <ClCompile Include="LightShaderClass.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="rendertextureclass.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="depthshaderclass.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="colorshaderclass.cpp">
+      <Filter>Source Files\Render\Old</Filter>
+    </ClCompile>
+    <ClCompile Include="displayplaneclass.cpp">
+      <Filter>Source Files\Render\Old</Filter>
+    </ClCompile>
+    <ClCompile Include="textureshaderclass.cpp">
+      <Filter>Source Files\Render\Old</Filter>
+    </ClCompile>
+    <ClCompile Include="shadowshaderclass.cpp">
       <Filter>Source Files\Render</Filter>
     </ClCompile>
   </ItemGroup>
@@ -165,22 +201,34 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="PixelShader.hlsl">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="VertexShader.hlsl">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="TexturePixelShader.hlsl">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="TextureVertexShader.hlsl">
-      <Filter>Shaders</Filter>
+      <Filter>Shaders\Pixel</Filter>
     </None>
     <None Include="Pixel_Light.hlsl">
-      <Filter>Shaders</Filter>
+      <Filter>Shaders\Pixel</Filter>
+    </None>
+    <None Include="Pixel_Depth.hlsl">
+      <Filter>Shaders\Pixel</Filter>
+    </None>
+    <None Include="TexturePixelShader.hlsl">
+      <Filter>Shaders\Pixel</Filter>
+    </None>
+    <None Include="VertexShader.hlsl">
+      <Filter>Shaders\Vertex</Filter>
+    </None>
+    <None Include="TextureVertexShader.hlsl">
+      <Filter>Shaders\Vertex</Filter>
+    </None>
+    <None Include="Vertex_Depth.hlsl">
+      <Filter>Shaders\Vertex</Filter>
     </None>
     <None Include="Vertex_Light.hlsl">
-      <Filter>Shaders</Filter>
+      <Filter>Shaders\Vertex</Filter>
+    </None>
+    <None Include="Vertex_Shadow.hlsl">
+      <Filter>Shaders\Vertex</Filter>
+    </None>
+    <None Include="Pixel_Shadow.hlsl">
+      <Filter>Shaders\Pixel</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

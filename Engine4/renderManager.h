@@ -24,10 +24,16 @@
 #include "LightShaderClass.h"
 #include "LightClass.h"
 
+#include "rendertextureclass.h"
+#include "displayplaneclass.h"
+#include "depthshaderclass.h" 
+#include "shadowshaderclass.h" 
+
 
 /////////////
 // GLOBALS //
 /////////////
+
 const bool FULL_SCREEN = false;
 const bool VSYNC_ENABLED = true;
 const float SCREEN_DEPTH = 1000.0f;
@@ -73,6 +79,9 @@ public:
 
 private:
 	bool Render(HWND hwnd);
+	bool RenderSceneToTexture();
+
+
 	MyDirectX* m_Direct3D;
 	CameraClass* m_Camera;
 
@@ -95,10 +104,17 @@ private:
 	float cameraPitch;    // ”гол наклона (вертикаль)
 
 	//Lab5
+	ShadowShaderClass* m_ShadowShader;
 	LightShaderClass* m_LightShader;
 	LightClass* m_Light;
 
+	RenderTextureClass* m_RenderTexture;
+	DepthShaderClass* m_DepthShader;
 
+
+	DisplayPlaneClass* m_DisplayPlane;
+
+	float m_shadowMapBias;
 
 };
 

@@ -9,6 +9,7 @@ RenderManager::RenderManager()
 	m_Camera = 0;
 	m_LightShader = 0;
 	m_Light = 0;
+	m_DepthShader = 0;
 
 
 }
@@ -104,6 +105,9 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 		return false;
 	}
 
+
+
+
 	m_Light = new LightClass;
 
 	m_Light->SetAmbientColor(0.35f, 0.35f, 0.35f, 1.0f);
@@ -112,6 +116,23 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 	m_Light->SetSpecularColor(1.0f, 1.0f, 1.0f, 1.0f);
 	m_Light->SetSpecularPower(50.0f);
 
+	// Создаем и инициализируем объект рендеринга в текстуру. 
+	m_RenderTexture = new RenderTextureClass;
+
+	result = m_RenderTexture->Initialize(m_Direct3D->GetDevice(), 512, 512, SCREEN_DEPTH, SCREEN_NEAR, 1);
+	if (!result)
+	{
+		return false;
+	}
+
+	// Создаем и инициализируем объект плоскости отображения. 
+	m_DisplayPlane = new DisplayPlaneClass;
+
+	result = m_DisplayPlane->Initialize(m_Direct3D->GetDevice(), 1.0f, 1.0f);
+	if (!result)
+	{
+		return false;
+	}
 
 	return true;
 }
@@ -358,15 +379,72 @@ XMFLOAT3 RenderManager::GetCameraDirection()
 	return direction;
 }
 
+
+bool RenderManager::RenderSceneToTexture() {
+	XMMATRIX worldMatrix, viewMatrix, projectionMatrix;
+	bool result;
+
+	// Установить рендер-таргет как рендер-текстуру
+	m_RenderTexture->SetRenderTarget(m_Direct3D->GetDeviceContext());
+	m_RenderTexture->ClearRenderTarget(m_Direct3D->GetDeviceContext(), 0.0f, 0.0f, 0.0f, 0.0f);
+
+	// Установить позицию камеры (например, как в основном рендере)
+	UpdateCameraPosition();
+	m_Camera->Render();
+
+	// Получить матрицы
+	m_Direct3D->GetWorldMatrix(worldMatrix);
+	m_Camera->GetViewMatrix(viewMatrix);
+	m_RenderTexture->GetProjectionMatrix(projectionMatrix);
+
+	// Рендеринг планеты с текущей матрицей вращения
+	XMFLOAT3 planetPos = Planet->GetPosition();
+	XMMATRIX translationMatrix = XMMatrixTranslation(planetPos.x, planetPos.y, planetPos.z);
+	XMMATRIX rotationMatrix = Planet->GetRotationMatrix();
+	if (XMMatrixIsIdentity(rotationMatrix)) {
+		rotationMatrix = XMMatrixIdentity();
+	}
+	XMMATRIX modelMatrix = XMMatrixMultiply(rotationMatrix, translationMatrix);
+
+	Planet->Render(m_Direct3D->GetDeviceContext());
+	result = m_LightShader->Render(m_Direct3D->GetDeviceContext(), Planet->GetIndexCount(), modelMatrix, viewMatrix, projectionMatrix, Planet->GetTexture(), m_Light->GetDirection(), m_Light->GetAmbientColor(), m_Light->GetDiffuseColor(), m_Camera->GetPosition(), m_Light->GetSpecularColor(), m_Light->GetSpecularPower());
+	if (!result) return false;
+
+	// Рендеринг бочек
+	for (int i = 0; i < 10; i++) {
+		if (Barrel[i]) {
+			XMFLOAT3 barrelPos = Barrel[i]->GetPosition();
+			translationMatrix = XMMatrixTranslation(barrelPos.x, barrelPos.y, barrelPos.z);
+			rotationMatrix = Barrel[i]->GetRotationMatrix();
+			if (XMMatrixIsIdentity(rotationMatrix)) {
+				rotationMatrix = XMMatrixIdentity();
+			}
+			modelMatrix = XMMatrixMultiply(rotationMatrix, translationMatrix);
+
+			Barrel[i]->Render(m_Direct3D->GetDeviceContext());
+			result = m_LightShader->Render(m_Direct3D->GetDeviceContext(), Barrel[i]->GetIndexCount(), modelMatrix, viewMatrix, projectionMatrix, Barrel[i]->GetTexture(), m_Light->GetDirection(), m_Light->GetAmbientColor(), m_Light->GetDiffuseColor(), m_Camera->GetPosition(), m_Light->GetSpecularColor(), m_Light->GetSpecularPower());
+			if (!result) return false;
+		}
+	}
+
+	// Вернуться к основному рендер-таргету
+	m_Direct3D->SetBackBufferRenderTarget();
+	m_Direct3D->ResetViewport();
+
+	return true;
+}
+
 bool RenderManager::Render(HWND hwnd)
 {
-	timeGame += 0.0001f;
+	timeGame += 0.001f;
 
 	XMMATRIX worldMatrix, viewMatrix, projectionMatrix;
 	bool result;
 
+	// Начать сцену, очистив буфер белым цветом
 	m_Direct3D->BeginScene(1.0f, 1.0f, 1.0f, 0.0f);
 
+	// Рендер камеры и обновление позиции
 	m_Camera->Render();
 	m_Direct3D->GetWorldMatrix(worldMatrix);
 	m_Camera->GetViewMatrix(viewMatrix);
@@ -374,6 +452,44 @@ bool RenderManager::Render(HWND hwnd)
 
 	UpdateCameraPosition();
 
+	// Рендеринг планеты
+	if (Planet)
+	{
+		XMFLOAT3 localPosition = Planet->GetPosition();
+		float x = localPosition.x;
+		float y = localPosition.y;
+		float z = localPosition.z;
+
+		XMMATRIX translationMatrix = XMMatrixTranslation(x, y, z);
+		XMMATRIX rotationMatrix = Planet->GetRotationMatrix();
+		if (XMMatrixIsIdentity(rotationMatrix))
+		{
+			rotationMatrix = XMMatrixIdentity();
+		}
+
+		XMMATRIX modelMatrix = XMMatrixMultiply(rotationMatrix, translationMatrix);
+
+		Planet->Render(m_Direct3D->GetDeviceContext());
+		result = m_LightShader->Render(
+			m_Direct3D->GetDeviceContext(),
+			Planet->GetIndexCount(),
+			modelMatrix,
+			viewMatrix,
+			projectionMatrix,
+			Planet->GetTexture(),
+			m_Light->GetDirection(),
+			m_Light->GetAmbientColor(),
+			m_Light->GetDiffuseColor(),
+			m_Camera->GetPosition(),
+			m_Light->GetSpecularColor(),
+			m_Light->GetSpecularPower()
+		);
+
+		if (!result) return false;
+		worldMatrix = XMMatrixIdentity();
+	}
+
+	// Рендеринг бочек
 	for (int i = 0; i < 10; i++) {
 		if (!Barrel[i]->IsAttached() && Planet->CheckCollisionSphere(Barrel[i])) {
 			Barrel[i]->SetAttached(true);
@@ -498,14 +614,14 @@ bool RenderManager::Render(HWND hwnd)
 				m_Direct3D->GetDeviceContext(),
 				Barrel[i]->GetIndexCount(),
 				modelMatrix,
-				viewMatrix, 
-				projectionMatrix, 
-				Barrel[i]->GetTexture(), 
-				m_Light->GetDirection(), 
+				viewMatrix,
+				projectionMatrix,
+				Barrel[i]->GetTexture(),
+				m_Light->GetDirection(),
 				m_Light->GetAmbientColor(),
-				m_Light->GetDiffuseColor(), 
-				m_Camera->GetPosition(), 
-				m_Light->GetSpecularColor(), 
+				m_Light->GetDiffuseColor(),
+				m_Camera->GetPosition(),
+				m_Light->GetSpecularColor(),
 				m_Light->GetSpecularPower());
 
 			if (!result) return false;
@@ -513,43 +629,79 @@ bool RenderManager::Render(HWND hwnd)
 		}
 	}
 
-	if (Planet)
-	{
-		XMFLOAT3 localPosition = Planet->GetPosition();
-		float x = localPosition.x;
-		float y = localPosition.y;
-		float z = localPosition.z;
+	// Добавляем рендеринг плоскостей с текстурой рендер-текстуры, используя m_LightShader
+	// Устанавливаем временную позицию камеры для просмотра плоскостей
+	XMFLOAT3 originalCameraPos = m_Camera->GetPosition();
+	m_Camera->SetPosition(0.0f, 0.0f, -10.0f); // Статичная камера
+	m_Camera->Render();
+	m_Camera->GetViewMatrix(viewMatrix); // Обновляем матрицу вида
 
-		XMMATRIX translationMatrix = XMMatrixTranslation(x, y, z);
-		XMMATRIX rotationMatrix = Planet->GetRotationMatrix();
-		if (XMMatrixIsIdentity(rotationMatrix))
-		{
-			rotationMatrix = XMMatrixIdentity();
-		}
+	// Рендеринг первой плоскости (верхняя)
+	worldMatrix = XMMatrixTranslation(0.0f, 1.5f, 0.0f); // Позиция выше центра
 
-		XMMATRIX modelMatrix = XMMatrixMultiply(rotationMatrix, translationMatrix);
+	m_DisplayPlane->Render(m_Direct3D->GetDeviceContext());
+	result = m_LightShader->Render(
+		m_Direct3D->GetDeviceContext(),
+		m_DisplayPlane->GetIndexCount(),
+		worldMatrix,
+		viewMatrix,
+		projectionMatrix,
+		m_RenderTexture->GetShaderResourceView(), // Используем текстуру рендер-текстуры
+		m_Light->GetDirection(),
+		m_Light->GetAmbientColor(),
+		m_Light->GetDiffuseColor(),
+		m_Camera->GetPosition(),
+		m_Light->GetSpecularColor(),
+		m_Light->GetSpecularPower()
+	);
+	if (!result) { return false; }
 
-		Planet->Render(m_Direct3D->GetDeviceContext());
-		result = m_LightShader->Render(
-			m_Direct3D->GetDeviceContext(),
-			Planet->GetIndexCount(),
-			modelMatrix,
-			viewMatrix,
-			projectionMatrix,
-			Planet->GetTexture(),
-			m_Light->GetDirection(),
-			m_Light->GetAmbientColor(),
-			m_Light->GetDiffuseColor(), 
-			m_Camera->GetPosition(), 
-			m_Light->GetSpecularColor(), 
-			m_Light->GetSpecularPower()
-		);
+	// Рендеринг второй плоскости (нижняя левая)
+	worldMatrix = XMMatrixTranslation(-1.5f, -1.5f, 0.0f); // Позиция слева внизу
 
-		if (!result) return false;
-		worldMatrix = XMMatrixIdentity();
-	}
+	m_DisplayPlane->Render(m_Direct3D->GetDeviceContext());
+	result = m_LightShader->Render(
+		m_Direct3D->GetDeviceContext(),
+		m_DisplayPlane->GetIndexCount(),
+		worldMatrix,
+		viewMatrix,
+		projectionMatrix,
+		m_RenderTexture->GetShaderResourceView(), // То же самое
+		m_Light->GetDirection(),
+		m_Light->GetAmbientColor(),
+		m_Light->GetDiffuseColor(),
+		m_Camera->GetPosition(),
+		m_Light->GetSpecularColor(),
+		m_Light->GetSpecularPower()
+	);
+	if (!result) { return false; }
 
-	// Конец сцены
+	// Рендеринг третьей плоскости (нижняя правая)
+	worldMatrix = XMMatrixTranslation(1.5f, -1.5f, 0.0f); // Позиция справа внизу
+
+	m_DisplayPlane->Render(m_Direct3D->GetDeviceContext());
+	result = m_LightShader->Render(
+		m_Direct3D->GetDeviceContext(),
+		m_DisplayPlane->GetIndexCount(),
+		worldMatrix,
+		viewMatrix,
+		projectionMatrix,
+		m_RenderTexture->GetShaderResourceView(), // То же самое
+		m_Light->GetDirection(),
+		m_Light->GetAmbientColor(),
+		m_Light->GetDiffuseColor(),
+		m_Camera->GetPosition(),
+		m_Light->GetSpecularColor(),
+		m_Light->GetSpecularPower()
+	);
+	if (!result) { return false; }
+
+	// Восстанавливаем оригинальную позицию камеры
+	m_Camera->SetPosition(originalCameraPos.x, originalCameraPos.y, originalCameraPos.z);
+	m_Camera->Render();
+	m_Camera->GetViewMatrix(viewMatrix); // Обновляем матрицу вида
+
+	// Завершение сцены
 	m_Direct3D->EndScene();
 
 	return true;
@@ -559,6 +711,14 @@ bool RenderManager::Update(HWND hwnd)
 {
 	bool result;
 
+	//Рендеринг в текстуру
+	result = RenderSceneToTexture();
+	if (!result)
+	{
+		return false;
+	}
+	
+	//Рендеринг 3d сцены
 	result = Render(hwnd);
 	if (!result)
 	{
@@ -570,7 +730,21 @@ bool RenderManager::Update(HWND hwnd)
 
 void RenderManager::Shutdown()
 {
+	// Освобождаем объект плоскости отображения. 
+	if (m_DisplayPlane)
+	{
+		m_DisplayPlane->Shutdown();
+		delete m_DisplayPlane;
+		m_DisplayPlane = 0;
+	}
 
+	// Освобождаем объект рендеринга в текстуру. 
+	if (m_RenderTexture)
+	{
+		m_RenderTexture->Shutdown();
+		delete m_RenderTexture;
+		m_RenderTexture = 0;
+	}
 	// Release the light object.
 	if (m_Light)
 	{	
