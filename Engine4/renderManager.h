@@ -36,8 +36,11 @@
 
 const bool FULL_SCREEN = false;
 const bool VSYNC_ENABLED = true;
-const float SCREEN_DEPTH = 1000.0f;
-const float SCREEN_NEAR = 0.3f;
+
+const float SCREEN_DEPTH = 100.0f;
+const float SCREEN_NEAR = 1.0f;
+const int SHADOWMAP_WIDTH = 4096;
+const int SHADOWMAP_HEIGHT = 4096;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -87,6 +90,9 @@ private:
 
 	//Lab3
 	ModelClass* Planet;
+	ModelClass* Floor;
+
+
 	float timeGame = 0.0f;
 
 	ModelClass* Barrel[10];
@@ -105,14 +111,11 @@ private:
 
 	//Lab5
 	ShadowShaderClass* m_ShadowShader;
-	LightShaderClass* m_LightShader;
 	LightClass* m_Light;
 
 	RenderTextureClass* m_RenderTexture;
 	DepthShaderClass* m_DepthShader;
 
-
-	DisplayPlaneClass* m_DisplayPlane;
 
 	float m_shadowMapBias;
 

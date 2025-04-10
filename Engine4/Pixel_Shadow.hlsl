@@ -1,20 +1,16 @@
-////////////////////////////////////////////////////////////////////////////////
-// Filename: shadow.ps
-////////////////////////////////////////////////////////////////////////////////
-
-
-/////////////
-// GLOBALS //
-/////////////
 Texture2D shaderTexture : register(t0);
 Texture2D depthMapTexture : register(t1);
 SamplerState SampleTypeClamp : register(s0);
 SamplerState SampleTypeWrap : register(s1);
 
+cbuffer LightBuffer
+{
+    float4 ambientColor;
+    float4 diffuseColor;
+    float bias;
+    float3 padding;
+};
 
-//////////////
-// TYPEDEFS //
-//////////////
 struct PixelInputType
 {
     float4 position : SV_POSITION;
@@ -24,22 +20,6 @@ struct PixelInputType
     float3 lightPos : TEXCOORD2;
 };
 
-
-//////////////////////
-// CONSTANT BUFFERS //
-//////////////////////
-cbuffer LightBuffer
-{
-    float4 ambientColor;
-    float4 diffuseColor;
-    float bias;
-    float3 padding;
-};
-
-
-////////////////////////////////////////////////////////////////////////////////
-// Pixel Shader
-////////////////////////////////////////////////////////////////////////////////
 float4 ShadowPixelShader(PixelInputType input) : SV_TARGET
 {
     float4 color;
@@ -48,49 +28,62 @@ float4 ShadowPixelShader(PixelInputType input) : SV_TARGET
     float lightDepthValue;
     float lightIntensity;
     float4 textureColor;
-	
 
-    // Set the default output color to the ambient light value for all pixels.
+    // Устанавливаем начальный цвет как ambient
     color = ambientColor;
 
-    // Calculate the projected texture coordinates.
+    // Вычисляем проекционные координаты для карты теней
     projectTexCoord.x = input.lightViewPosition.x / input.lightViewPosition.w / 2.0f + 0.5f;
     projectTexCoord.y = -input.lightViewPosition.y / input.lightViewPosition.w / 2.0f + 0.5f;
 
-    // Determine if the projected coordinates are in the 0 to 1 range.  If it is then this pixel is inside the projected view port.
+    // Проверяем, находится ли пиксель в пределах карты теней
     if ((saturate(projectTexCoord.x) == projectTexCoord.x) && (saturate(projectTexCoord.y) == projectTexCoord.y))
     {
-        // Sample the shadow map depth value from the depth texture using the sampler at the projected texture coordinate location.
-        depthValue = depthMapTexture.Sample(SampleTypeClamp, projectTexCoord).r;
+        // Размер текселя для карты теней (предполагаем 2048x2048)
+        float texelSize = 1.0f / 2048.0f;
+        float shadow = 0.0f;
 
-        // Calculate the depth of the light.
-        lightDepthValue = input.lightViewPosition.z / input.lightViewPosition.w;
-
-        // Subtract the bias from the lightDepthValue.
-        lightDepthValue = lightDepthValue - bias;
-
-         // Compare the depth of the shadow map value and the depth of the light to determine whether to shadow or to light this pixel.
-        // If the light is in front of the object then light the pixel, if not then shadow this pixel since an object (occluder) is casting a shadow on it.
-        if (lightDepthValue < depthValue)
+        // PCF 3x3: суммируем 9 сэмплов вокруг текущей точки
+        for (int x = -1; x <= 1; x++)
         {
-            // Calculate the amount of light on this pixel.
-            lightIntensity = saturate(dot(input.normal, input.lightPos));
-
-            if (lightIntensity > 0.0f)
+            for (int y = -1; y <= 1; y++)
             {
-                // Determine the final diffuse color based on the diffuse color and the amount of light intensity.
-                color += (diffuseColor * lightIntensity);
+                // Сэмплируем глубину с небольшим смещением
+                depthValue = depthMapTexture.Sample(SampleTypeClamp, projectTexCoord + float2(x, y) * texelSize).r;
 
-                // Saturate the final light color.
-                color = saturate(color);
+                // Вычисляем глубину света с учётом bias
+                lightDepthValue = input.lightViewPosition.z / input.lightViewPosition.w - bias;
+
+                // Добавляем 1.0, если пиксель освещён, 0.0 — если в тени
+                shadow += (lightDepthValue < depthValue) ? 1.0f : 0.0f;
             }
+        }
+
+        // Усредняем результат (9 сэмплов)
+        shadow /= 9.0f;
+
+        // Если пиксель освещён хотя бы частично, вычисляем интенсивность света
+        lightIntensity = saturate(dot(input.normal, input.lightPos));
+        if (lightIntensity > 0.0f)
+        {
+            // Добавляем диффузный свет с учётом интенсивности
+            color += (diffuseColor * lightIntensity * shadow); // Умножаем на shadow для плавности
+            color = saturate(color);
+        }
+    }
+    else
+    {
+        // Если вне карты теней, считаем пиксель полностью освещённым
+        lightIntensity = saturate(dot(input.normal, input.lightPos));
+        if (lightIntensity > 0.0f)
+        {
+            color += (diffuseColor * lightIntensity);
+            color = saturate(color);
         }
     }
 
-    // Sample the pixel color from the texture using the sampler at this texture coordinate location.
+    // Сэмплируем текстуру и комбинируем с цветом света
     textureColor = shaderTexture.Sample(SampleTypeWrap, input.tex);
-
-    // Combine the light and texture color.
     color = color * textureColor;
 
     return color;

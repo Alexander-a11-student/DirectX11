@@ -39,7 +39,7 @@ void LightClass::SetDirection(float x, float y, float z)
 	return;
 }
 
-//Новая штука для теней
+
 void LightClass::SetPosition(float x, float y, float z)
 {
 	m_position = XMFLOAT3(x, y, z);
@@ -51,6 +51,24 @@ void LightClass::SetLookAt(float x, float y, float z)
 {
 	m_lookAt = XMFLOAT3(x, y, z);
 	return;
+}
+
+
+XMFLOAT4 LightClass::GetAmbientColor()
+{
+	return m_ambientColor;
+}
+
+
+XMFLOAT4 LightClass::GetDiffuseColor()
+{
+	return m_diffuseColor;
+}
+
+
+XMFLOAT3 LightClass::GetDirection()
+{
+	return m_direction;
 }
 
 
@@ -83,19 +101,9 @@ void LightClass::GenerateViewMatrix()
 }
 
 
-void LightClass::GenerateProjectionMatrix(float screenDepth, float screenNear)
+void LightClass::GenerateOrthoMatrix(float width, float height, float screenNear, float screenDepth)
 {
-	float fieldOfView, screenAspect;
-
-
-	// Setup field of view and screen aspect for a square light source.
-	fieldOfView = 3.14159265358979323846f / 2.0f;
-	screenAspect = 1.0f;
-
-	// Create the projection matrix for the light.
-	m_projectionMatrix = XMMatrixPerspectiveFovLH(fieldOfView, screenAspect, screenNear, screenDepth);
-
-	return;
+	m_projectionMatrix = XMMatrixOrthographicLH(width, height, screenNear, screenDepth);
 }
 
 
@@ -109,59 +117,5 @@ void LightClass::GetViewMatrix(XMMATRIX& viewMatrix)
 void LightClass::GetProjectionMatrix(XMMATRIX& projectionMatrix)
 {
 	projectionMatrix = m_projectionMatrix;
-	return;
-}
-
-//Конец нового
-
-
-
-XMFLOAT4 LightClass::GetAmbientColor()
-{
-	return m_ambientColor;
-}
-
-
-XMFLOAT4 LightClass::GetDiffuseColor()
-{
-	return m_diffuseColor;
-}
-
-
-XMFLOAT3 LightClass::GetDirection()
-{
-	return m_direction;
-}
-
-
-
-
-
-
-
-
-
-
-XMFLOAT4 LightClass::GetSpecularColor()
-{
-	return m_specularColor;
-}
-
-
-float LightClass::GetSpecularPower()
-{
-	return m_specularPower;
-}
-
-void LightClass::SetSpecularColor(float red, float green, float blue, float alpha)
-{
-	m_specularColor = XMFLOAT4(red, green, blue, alpha);
-	return;
-}
-
-
-void LightClass::SetSpecularPower(float power)
-{
-	m_specularPower = power;
 	return;
 }
