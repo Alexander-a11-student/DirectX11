@@ -67,7 +67,7 @@ public:
 	XMFLOAT3 GetCameraDirection(); // Новый метод для получения вектора направления
 	// Другие методы...
 
-	
+
 
 
 
@@ -94,11 +94,15 @@ private:
 	float cameraYaw;      // Угол поворота вокруг оси Y (горизонталь)
 	float cameraPitch;    // Угол наклона (вертикаль)
 
+
+
+
+	ModelClass* Floor;
+
 	//Lab5
 	LightShaderClass* m_LightShader;
-	LightClass* m_Light;
-
-
+	LightClass* m_Lights;
+	int m_numLights;
 
 };
 

@@ -8,7 +8,7 @@ RenderManager::RenderManager()
 	m_Direct3D = 0;
 	m_Camera = 0;
 	m_LightShader = 0;
-	m_Light = 0;
+	m_Lights = 0;
 
 
 }
@@ -64,6 +64,18 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 	strcpy_s(textureFilenameFloor, "../Engine4/Circle2.tga");
 
 
+	Floor = new ModelClass();
+	result = Floor->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), textureFilenameFloor, modelFilenameFloor);
+	if (!result)
+	{
+		MessageBox(hwnd, L"Could not initialize the floor model object.", L"Error", MB_OK);
+		return false;
+	}
+
+	Floor->SetPosition(0.0f, -1.0f, 0.0f); // Устанавливаем позицию пола
+	Floor->SetSize(20.0f); // Устанавливаем размер пола
+
+
 	for (int i = 0; i < 10; i++)
 	{
 		Barrel[i] = new ModelClass();
@@ -104,13 +116,24 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 		return false;
 	}
 
-	m_Light = new LightClass;
+	// Set the number of lights we will use.
+	m_numLights = 4;
+	// Create and initialize the light objects array.
+	m_Lights = new LightClass[m_numLights];
 
-	m_Light->SetAmbientColor(0.35f, 0.35f, 0.35f, 1.0f);
-	m_Light->SetDiffuseColor(1.0f, 1.0f, 1.0f, 1.0f);
-	m_Light->SetDirection(1.0f, 0.0f, 1.0f);
-	m_Light->SetSpecularColor(1.0f, 1.0f, 1.0f, 1.0f);
-	m_Light->SetSpecularPower(50.0f);
+	// Manually set the color and position of each light.
+	m_Lights[0].SetDiffuseColor(1.0f, 0.0f, 0.0f, 1.0f);  // Red
+	m_Lights[0].SetPosition(-3.0f, 1.0f, 3.0f);
+
+	m_Lights[1].SetDiffuseColor(0.0f, 1.0f, 0.0f, 1.0f);  // Green
+	m_Lights[1].SetPosition(3.0f, 1.0f, 3.0f);
+
+	m_Lights[2].SetDiffuseColor(0.0f, 0.0f, 1.0f, 1.0f);  // Blue
+	m_Lights[2].SetPosition(-3.0f, 1.0f, -3.0f);
+
+	m_Lights[3].SetDiffuseColor(1.0f, 1.0f, 1.0f, 1.0f);  // White
+	m_Lights[3].SetPosition(3.0f, 1.0f, -3.0f);
+
 
 
 	return true;
@@ -363,6 +386,10 @@ bool RenderManager::Render(HWND hwnd)
 	timeGame += 0.0001f;
 
 	XMMATRIX worldMatrix, viewMatrix, projectionMatrix;
+
+	XMFLOAT4 diffuseColor[4], lightPosition[4];
+	int i;
+
 	bool result;
 
 	m_Direct3D->BeginScene(1.0f, 1.0f, 1.0f, 0.0f);
@@ -371,6 +398,16 @@ bool RenderManager::Render(HWND hwnd)
 	m_Direct3D->GetWorldMatrix(worldMatrix);
 	m_Camera->GetViewMatrix(viewMatrix);
 	m_Direct3D->GetProjectionMatrix(projectionMatrix);
+
+	// Get the light properties.
+	for (i = 0; i < m_numLights; i++)
+	{
+		// Create the diffuse color array from the four light colors.
+		diffuseColor[i] = m_Lights[i].GetDiffuseColor();
+
+		// Create the light position array from the four light positions.
+		lightPosition[i] = m_Lights[i].GetPosition();
+	}
 
 	UpdateCameraPosition();
 
@@ -501,17 +538,48 @@ bool RenderManager::Render(HWND hwnd)
 				viewMatrix, 
 				projectionMatrix, 
 				Barrel[i]->GetTexture(), 
-				m_Light->GetDirection(), 
-				m_Light->GetAmbientColor(),
-				m_Light->GetDiffuseColor(), 
-				m_Camera->GetPosition(), 
-				m_Light->GetSpecularColor(), 
-				m_Light->GetSpecularPower());
+				diffuseColor, 
+				lightPosition
+			);
 
 			if (!result) return false;
 			worldMatrix = XMMatrixIdentity();
 		}
 	}
+
+	// Рендеринг пола
+	if (Floor)
+	{
+		XMFLOAT3 localPosition = Floor->GetPosition();
+		float x = localPosition.x;
+		float y = localPosition.y;
+		float z = localPosition.z;
+
+		XMMATRIX translationMatrix = XMMatrixTranslation(x, y, z);
+		XMMATRIX rotationMatrix = Floor->GetRotationMatrix();
+		if (XMMatrixIsIdentity(rotationMatrix))
+		{
+			rotationMatrix = XMMatrixIdentity();
+		}
+
+		XMMATRIX modelMatrix = XMMatrixMultiply(rotationMatrix, translationMatrix);
+
+		Floor->Render(m_Direct3D->GetDeviceContext());
+		result = m_LightShader->Render(
+			m_Direct3D->GetDeviceContext(),
+			Floor->GetIndexCount(),
+			modelMatrix,
+			viewMatrix,
+			projectionMatrix,
+			Floor->GetTexture(),
+			diffuseColor,
+			lightPosition
+		);
+
+		if (!result) return false;
+		worldMatrix = XMMatrixIdentity();
+	}
+
 
 	if (Planet)
 	{
@@ -537,12 +605,8 @@ bool RenderManager::Render(HWND hwnd)
 			viewMatrix,
 			projectionMatrix,
 			Planet->GetTexture(),
-			m_Light->GetDirection(),
-			m_Light->GetAmbientColor(),
-			m_Light->GetDiffuseColor(), 
-			m_Camera->GetPosition(), 
-			m_Light->GetSpecularColor(), 
-			m_Light->GetSpecularPower()
+			diffuseColor,
+			lightPosition
 		);
 
 		if (!result) return false;
@@ -570,12 +634,19 @@ bool RenderManager::Update(HWND hwnd)
 
 void RenderManager::Shutdown()
 {
+	// Освобождение ресурсов пола
+	if (Floor)
+	{
+		Floor->Shutdown();
+		delete Floor;
+		Floor = nullptr;
+	}
 
 	// Release the light object.
-	if (m_Light)
-	{	
-		delete m_Light;
-		m_Light = 0;
+	if (m_Lights)
+	{
+		delete[] m_Lights;
+		m_Lights = 0;
 	}
 
 	// Release the light shader object.
@@ -615,5 +686,3 @@ void RenderManager::Shutdown()
 	}
 	return;
 }
-
-
