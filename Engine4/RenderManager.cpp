@@ -110,7 +110,7 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 	}
 
 	// Устанавливаем 100 источников света
-	m_numLights = 4;
+	m_numLights = 30;
 	m_Lights = new LightClass[m_numLights];
 
 	for (int i = 0; i < m_numLights; i++)
@@ -128,8 +128,8 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 		m_Lights[i].SetPosition(x, y, z);
 
 		// Параметры затухания
-		m_Lights[i].SetAttenuation(0.01f, 0.01f, 0.01f);
-		m_Lights[i].SetRange(250.0f);
+		m_Lights[i].SetAttenuation(0.4f, 0.4f, 0.4f);
+		m_Lights[i].SetRange(20.0f);
 	}
 
 	return true;
@@ -382,7 +382,7 @@ bool RenderManager::Render(HWND hwnd)
 	timeGame += 0.016f; // Примерно 60 FPS
 
 	XMMATRIX worldMatrix, viewMatrix, projectionMatrix;
-	XMFLOAT4 diffuseColor[4], lightPosition[4], lightAttenuation[4];
+	XMFLOAT4 diffuseColor[30], lightPosition[30], lightAttenuation[30];
 	bool result;
 
 	// Начать сцену

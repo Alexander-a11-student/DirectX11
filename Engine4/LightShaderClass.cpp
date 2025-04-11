@@ -383,24 +383,22 @@ void LightShaderClass::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND h
 bool LightShaderClass::SetShaderParameters(ID3D11DeviceContext* deviceContext, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
 	ID3D11ShaderResourceView* texture, XMFLOAT4 diffuseColor[], XMFLOAT4 lightPosition[], XMFLOAT4 lightAttenuation[])
 {
-
-	int NUM_LIGHTS = 4; // Number of lights
-
+	int NUM_LIGHTS = 30;
 
 	HRESULT result;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
 	unsigned int bufferNumber;
 	MatrixBufferType* dataPtr;
-	LightPositionBufferType* dataPtr2;
 	LightColorBufferType* dataPtr3;
 	LightAttenuationBufferType* dataPtr4;
+	LightPositionBufferType* dataPtr2;
 
-	// Transpose the matrices
+	// Транспонируем матрицы
 	worldMatrix = XMMatrixTranspose(worldMatrix);
 	viewMatrix = XMMatrixTranspose(viewMatrix);
 	projectionMatrix = XMMatrixTranspose(projectionMatrix);
 
-	// Lock and fill the matrix buffer
+	// Заполняем буфер матриц
 	result = deviceContext->Map(m_matrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	if (FAILED(result)) return false;
 	dataPtr = (MatrixBufferType*)mappedResource.pData;
@@ -411,20 +409,10 @@ bool LightShaderClass::SetShaderParameters(ID3D11DeviceContext* deviceContext, X
 	bufferNumber = 0;
 	deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_matrixBuffer);
 
-	// Lock and fill the light position buffer
-	result = deviceContext->Map(m_lightPositionBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-	if (FAILED(result)) return false;
-	dataPtr2 = (LightPositionBufferType*)mappedResource.pData;
-	for (int i = 0; i < NUM_LIGHTS; i++)
-		dataPtr2->lightPosition[i] = lightPosition[i];
-	deviceContext->Unmap(m_lightPositionBuffer, 0);
-	bufferNumber = 1;
-	deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_lightPositionBuffer);
-
-	// Set texture resource
+	// Устанавливаем текстуру
 	deviceContext->PSSetShaderResources(0, 1, &texture);
 
-	// Lock and fill the light color buffer
+	// Заполняем буфер цветов света
 	result = deviceContext->Map(m_lightColorBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	if (FAILED(result)) return false;
 	dataPtr3 = (LightColorBufferType*)mappedResource.pData;
@@ -434,7 +422,7 @@ bool LightShaderClass::SetShaderParameters(ID3D11DeviceContext* deviceContext, X
 	bufferNumber = 0;
 	deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_lightColorBuffer);
 
-	// Lock and fill the light attenuation buffer
+	// Заполняем буфер затухания
 	result = deviceContext->Map(m_lightAttenuationBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	if (FAILED(result)) return false;
 	dataPtr4 = (LightAttenuationBufferType*)mappedResource.pData;
@@ -443,6 +431,16 @@ bool LightShaderClass::SetShaderParameters(ID3D11DeviceContext* deviceContext, X
 	deviceContext->Unmap(m_lightAttenuationBuffer, 0);
 	bufferNumber = 1;
 	deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_lightAttenuationBuffer);
+
+	// Заполняем буфер позиций света (для пиксельного шейдера)
+	result = deviceContext->Map(m_lightPositionBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+	if (FAILED(result)) return false;
+	dataPtr2 = (LightPositionBufferType*)mappedResource.pData;
+	for (int i = 0; i < NUM_LIGHTS; i++)
+		dataPtr2->lightPosition[i] = lightPosition[i];
+	deviceContext->Unmap(m_lightPositionBuffer, 0);
+	bufferNumber = 2;
+	deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_lightPositionBuffer);
 
 	return true;
 }
