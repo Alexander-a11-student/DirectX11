@@ -13,6 +13,7 @@ LightShaderClass::LightShaderClass()
 	m_matrixBuffer = 0;
 	m_lightColorBuffer = 0;
 	m_lightPositionBuffer = 0;
+	m_lightAttenuationBuffer = 0; // Добавляем
 }
 
 
@@ -69,24 +70,22 @@ void LightShaderClass::Shutdown()
 
 
 bool LightShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
-	ID3D11ShaderResourceView* texture, XMFLOAT4 diffuseColor[], XMFLOAT4 lightPosition[])
+	ID3D11ShaderResourceView* texture, XMFLOAT4 diffuseColor[], XMFLOAT4 lightPosition[], XMFLOAT4 lightAttenuation[])
 {
 	bool result;
 
-
-	// Set the shader parameters that it will use for rendering.
-	result = SetShaderParameters(deviceContext, worldMatrix, viewMatrix, projectionMatrix, texture, diffuseColor, lightPosition);
+	// Set the shader parameters
+	result = SetShaderParameters(deviceContext, worldMatrix, viewMatrix, projectionMatrix, texture, diffuseColor, lightPosition, lightAttenuation);
 	if (!result)
 	{
 		return false;
 	}
 
-	// Now render the prepared buffers with the shader.
+	// Render the prepared buffers with the shader
 	RenderShader(deviceContext, indexCount);
 
 	return true;
 }
-
 
 bool LightShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilename, WCHAR* psFilename)
 {
@@ -100,6 +99,7 @@ bool LightShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* 
 	D3D11_BUFFER_DESC matrixBufferDesc;
 	D3D11_BUFFER_DESC lightColorBufferDesc;
 	D3D11_BUFFER_DESC lightPositionBufferDesc;
+	D3D11_BUFFER_DESC lightAttenuationBufferDesc;
 
 
 	// Initialize the pointers this function will use to null.
@@ -267,13 +267,34 @@ bool LightShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* 
 		return false;
 	}
 
+	// Setup the description of the dynamic constant buffer for attenuation in the pixel shader
+	lightAttenuationBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	lightAttenuationBufferDesc.ByteWidth = sizeof(LightAttenuationBufferType);
+	lightAttenuationBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	lightAttenuationBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	lightAttenuationBufferDesc.MiscFlags = 0;
+	lightAttenuationBufferDesc.StructureByteStride = 0;
+
+	result = device->CreateBuffer(&lightAttenuationBufferDesc, NULL, &m_lightAttenuationBuffer);
+	if (FAILED(result))
+	{
+		return false;
+	}
+
 	return true;
 }
 
 
 void LightShaderClass::ShutdownShader()
 {
-	// Release the light constant buffers.
+	// Release the light attenuation buffer
+	if (m_lightAttenuationBuffer)
+	{
+		m_lightAttenuationBuffer->Release();
+		m_lightAttenuationBuffer = 0;
+	}
+
+	// Release the light constant buffers
 	if (m_lightColorBuffer)
 	{
 		m_lightColorBuffer->Release();
@@ -286,42 +307,40 @@ void LightShaderClass::ShutdownShader()
 		m_lightPositionBuffer = 0;
 	}
 
-	// Release the matrix constant buffer.
+	// Release the matrix constant buffer
 	if (m_matrixBuffer)
 	{
 		m_matrixBuffer->Release();
 		m_matrixBuffer = 0;
 	}
 
-	// Release the sampler state.
+	// Release the sampler state
 	if (m_sampleState)
 	{
 		m_sampleState->Release();
 		m_sampleState = 0;
 	}
 
-	// Release the layout.
+	// Release the layout
 	if (m_layout)
 	{
 		m_layout->Release();
 		m_layout = 0;
 	}
 
-	// Release the pixel shader.
+	// Release the pixel shader
 	if (m_pixelShader)
 	{
 		m_pixelShader->Release();
 		m_pixelShader = 0;
 	}
 
-	// Release the vertex shader.
+	// Release the vertex shader
 	if (m_vertexShader)
 	{
 		m_vertexShader->Release();
 		m_vertexShader = 0;
 	}
-
-	return;
 }
 
 
@@ -362,97 +381,68 @@ void LightShaderClass::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND h
 
 
 bool LightShaderClass::SetShaderParameters(ID3D11DeviceContext* deviceContext, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
-	ID3D11ShaderResourceView* texture, XMFLOAT4 diffuseColor[], XMFLOAT4 lightPosition[])
+	ID3D11ShaderResourceView* texture, XMFLOAT4 diffuseColor[], XMFLOAT4 lightPosition[], XMFLOAT4 lightAttenuation[])
 {
+
+	int NUM_LIGHTS = 4; // Number of lights
+
+
 	HRESULT result;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
 	unsigned int bufferNumber;
 	MatrixBufferType* dataPtr;
 	LightPositionBufferType* dataPtr2;
 	LightColorBufferType* dataPtr3;
+	LightAttenuationBufferType* dataPtr4;
 
-
-	// Transpose the matrices to prepare them for the shader.
+	// Transpose the matrices
 	worldMatrix = XMMatrixTranspose(worldMatrix);
 	viewMatrix = XMMatrixTranspose(viewMatrix);
 	projectionMatrix = XMMatrixTranspose(projectionMatrix);
 
-	// Lock the constant buffer so it can be written to.
+	// Lock and fill the matrix buffer
 	result = deviceContext->Map(m_matrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-	if (FAILED(result))
-	{
-		return false;
-	}
-
-	// Get a pointer to the data in the constant buffer.
+	if (FAILED(result)) return false;
 	dataPtr = (MatrixBufferType*)mappedResource.pData;
-
-	// Copy the matrices into the constant buffer.
 	dataPtr->world = worldMatrix;
 	dataPtr->view = viewMatrix;
 	dataPtr->projection = projectionMatrix;
-
-	// Unlock the constant buffer.
 	deviceContext->Unmap(m_matrixBuffer, 0);
-
-	// Set the position of the constant buffer in the vertex shader.
 	bufferNumber = 0;
-
-	// Now set the constant buffer in the vertex shader with the updated values.
 	deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_matrixBuffer);
 
-	// Lock the light position constant buffer so it can be written to.
+	// Lock and fill the light position buffer
 	result = deviceContext->Map(m_lightPositionBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-	if (FAILED(result))
-	{
-		return false;
-	}
-
-	// Get a pointer to the data in the constant buffer.
+	if (FAILED(result)) return false;
 	dataPtr2 = (LightPositionBufferType*)mappedResource.pData;
-
-	// Copy the light position variables into the constant buffer.
-	dataPtr2->lightPosition[0] = lightPosition[0];
-	dataPtr2->lightPosition[1] = lightPosition[1];
-	dataPtr2->lightPosition[2] = lightPosition[2];
-	dataPtr2->lightPosition[3] = lightPosition[3];
-
-	// Unlock the constant buffer.
+	for (int i = 0; i < NUM_LIGHTS; i++)
+		dataPtr2->lightPosition[i] = lightPosition[i];
 	deviceContext->Unmap(m_lightPositionBuffer, 0);
-
-	// Set the position of the constant buffer in the vertex shader.
 	bufferNumber = 1;
-
-	// Finally set the constant buffer in the vertex shader with the updated values.
 	deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_lightPositionBuffer);
 
-	// Set shader texture resource in the pixel shader.
+	// Set texture resource
 	deviceContext->PSSetShaderResources(0, 1, &texture);
 
-	// Lock the light color constant buffer so it can be written to.
+	// Lock and fill the light color buffer
 	result = deviceContext->Map(m_lightColorBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-	if (FAILED(result))
-	{
-		return false;
-	}
-
-	// Get a pointer to the data in the constant buffer.
+	if (FAILED(result)) return false;
 	dataPtr3 = (LightColorBufferType*)mappedResource.pData;
-
-	// Copy the light color variables into the constant buffer.
-	dataPtr3->diffuseColor[0] = diffuseColor[0];
-	dataPtr3->diffuseColor[1] = diffuseColor[1];
-	dataPtr3->diffuseColor[2] = diffuseColor[2];
-	dataPtr3->diffuseColor[3] = diffuseColor[3];
-
-	// Unlock the constant buffer.
+	for (int i = 0; i < NUM_LIGHTS; i++)
+		dataPtr3->diffuseColor[i] = diffuseColor[i];
 	deviceContext->Unmap(m_lightColorBuffer, 0);
-
-	// Set the position of the constant buffer in the pixel shader.
 	bufferNumber = 0;
-
-	// Finally set the constant buffer in the pixel shader with the updated values.
 	deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_lightColorBuffer);
+
+	// Lock and fill the light attenuation buffer
+	result = deviceContext->Map(m_lightAttenuationBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+	if (FAILED(result)) return false;
+	dataPtr4 = (LightAttenuationBufferType*)mappedResource.pData;
+	for (int i = 0; i < NUM_LIGHTS; i++)
+		dataPtr4->attenuation[i] = lightAttenuation[i];
+	deviceContext->Unmap(m_lightAttenuationBuffer, 0);
+	bufferNumber = 1;
+	deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_lightAttenuationBuffer);
 
 	return true;
 }

@@ -1,17 +1,5 @@
-////////////////////////////////////////////////////////////////////////////////
-// Filename: light.ps
-////////////////////////////////////////////////////////////////////////////////
-
-
-/////////////
-// DEFINES //
-/////////////
 #define NUM_LIGHTS 4
 
-
-/////////////
-// GLOBALS //
-/////////////
 Texture2D shaderTexture : register(t0);
 SamplerState SampleType : register(s0);
 
@@ -20,57 +8,58 @@ cbuffer LightColorBuffer
     float4 diffuseColor[NUM_LIGHTS];
 };
 
+cbuffer LightAttenuationBuffer
+{
+    float4 attenuation[NUM_LIGHTS]; // x: constant, y: linear, z: quadratic, w: range
+};
 
-//////////////
-// TYPEDEFS //
-//////////////
 struct PixelInputType
 {
     float4 position : SV_POSITION;
     float2 tex : TEXCOORD0;
     float3 normal : NORMAL;
-    float3 lightPos[NUM_LIGHTS] : TEXCOORD1;
+    float3 lightDir[NUM_LIGHTS] : TEXCOORD1;
+    float3 lightPos[NUM_LIGHTS] : TEXCOORD5;
 };
 
-
-////////////////////////////////////////////////////////////////////////////////
-// Pixel Shader
-////////////////////////////////////////////////////////////////////////////////
 float4 LightPixelShader(PixelInputType input) : SV_TARGET
 {
     float4 textureColor;
     float lightIntensity[NUM_LIGHTS];
     float4 colorArray[NUM_LIGHTS];
     float4 colorSum;
-    float4 color;
+    float distance;
+    float atten;
     int i;
 
-
-	// Sample the texture pixel at this location.
     textureColor = shaderTexture.Sample(SampleType, input.tex);
 
     for (i = 0; i < NUM_LIGHTS; i++)
     {
-		// Calculate the different amounts of light on this pixel based on the positions of the lights.
         lightIntensity[i] = saturate(dot(input.normal, input.lightPos[i]));
 
-		// Determine the diffuse color amount of each of the four lights.
-        colorArray[i] = diffuseColor[i] * lightIntensity[i];
+        distance = length(input.lightDir[i]);
+
+        if (distance > attenuation[i].w)
+        {
+            atten = 0.0f;
+        }
+        else
+        {
+            atten = 1.0f / (attenuation[i].x + attenuation[i].y * distance + attenuation[i].z * distance * distance);
+        }
+
+        colorArray[i] = diffuseColor[i] * lightIntensity[i] * (atten);
     }
 
-	// Initialize the sum of colors.
     colorSum = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
-    // Add all of the light colors up.
     for (i = 0; i < NUM_LIGHTS; i++)
     {
-        colorSum.r += colorArray[i].r;
-        colorSum.g += colorArray[i].g;
-        colorSum.b += colorArray[i].b;
+        colorSum += colorArray[i];
     }
 
-	// Multiply the texture pixel by the combination of all four light colors to get the final result.
-    color = saturate(colorSum) * textureColor;
+    float4 color = saturate(colorSum + 0.05) * textureColor;
 
     return color;
 }

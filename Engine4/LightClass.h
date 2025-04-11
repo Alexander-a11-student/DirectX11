@@ -1,20 +1,9 @@
-////////////////////////////////////////////////////////////////////////////////
-// Filename: lightclass.h
-////////////////////////////////////////////////////////////////////////////////
 #ifndef _LIGHTCLASS_H_
 #define _LIGHTCLASS_H_
 
-
-//////////////
-// INCLUDES //
-//////////////
 #include <directxmath.h>
 using namespace DirectX;
 
-
-////////////////////////////////////////////////////////////////////////////////
-// Class name: LightClass
-////////////////////////////////////////////////////////////////////////////////
 class LightClass
 {
 public:
@@ -28,6 +17,9 @@ public:
     void SetSpecularColor(float, float, float, float);
     void SetSpecularPower(float);
     void SetPosition(float, float, float);
+    // Новые методы для затухания и дальности
+    void SetAttenuation(float constant, float linear, float quadratic);
+    void SetRange(float range);
 
     XMFLOAT4 GetAmbientColor();
     XMFLOAT4 GetDiffuseColor();
@@ -35,6 +27,9 @@ public:
     XMFLOAT4 GetSpecularColor();
     float GetSpecularPower();
     XMFLOAT4 GetPosition();
+    // Новые геттеры
+    XMFLOAT3 GetAttenuation();
+    float GetRange();
 
 private:
     XMFLOAT4 m_ambientColor;
@@ -43,6 +38,9 @@ private:
     XMFLOAT4 m_specularColor;
     float m_specularPower;
     XMFLOAT4 m_position;
+    // Новые поля
+    XMFLOAT3 m_attenuation; // constant, linear, quadratic
+    float m_range;
 };
 
 #endif

@@ -41,28 +41,26 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 	cameraYaw = XMConvertToRadians(0.0f);   // Начальный угол по горизонтали (в радианах)
 	cameraPitch = XMConvertToRadians(45.0f); // Начальный угол по вертикали (в радианах)
 
-	//Планета
+	// Планета
 	char modelFilenamePlanet[128];
 	strcpy_s(modelFilenamePlanet, "../Engine4/sphere.txt");
-		
+
 	char textureFilenamePlanet[128];
 	strcpy_s(textureFilenamePlanet, "../Engine4/TexturePlanet2.tga");
 
-	//Бочка
-
+	// Бочка
 	char modelFilenameBarrel[128];
 	strcpy_s(modelFilenameBarrel, "../Engine4/Barrel.txt");
 
 	char textureFilenameBarrel[128];
 	strcpy_s(textureFilenameBarrel, "../Engine4/MyBarrel.tga");
 
-	//Пол
+	// Пол
 	char modelFilenameFloor[128];
 	strcpy_s(modelFilenameFloor, "../Engine4/Boll.txt");
 
 	char textureFilenameFloor[128];
 	strcpy_s(textureFilenameFloor, "../Engine4/Circle2.tga");
-
 
 	Floor = new ModelClass();
 	result = Floor->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), textureFilenameFloor, modelFilenameFloor);
@@ -72,9 +70,7 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 		return false;
 	}
 
-	Floor->SetPosition(0.0f, -1.0f, 0.0f); // Устанавливаем позицию пола
-	Floor->SetSize(20.0f); // Устанавливаем размер пола
-
+	Floor->SetPosition(0.0f, -1.5f, 0.0f); // Устанавливаем позицию пола
 
 	for (int i = 0; i < 10; i++)
 	{
@@ -86,9 +82,9 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 			return false;
 		}
 
-		// Случайное распределение объектов Planet[i] по карте
-		float x = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 20.0f;
-		float z = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 20.0f;
+		// Случайное распределение объектов Barrel[i] по карте
+		float x = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 20.0f - 10.0f; // От -10 до 10
+		float z = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 20.0f - 10.0f;
 		Barrel[i]->SetPosition(x, -0.2f, z);
 		Barrel[i]->SetSize(0.9f);
 	}
@@ -97,18 +93,15 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 	result = Planet->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), textureFilenamePlanet, modelFilenamePlanet);
 	if (!result)
 	{
-		MessageBox(hwnd, L"Could not initialize the barrel model object.", L"Error", MB_OK);
+		MessageBox(hwnd, L"Could not initialize the planet model object.", L"Error", MB_OK);
 		return false;
 	}
-
 
 	Planet->SetPosition(0.0f, 0.0f, 0.0f);
 	Planet->SetSize(2.5f);
 
-
-	// Create and initialize the light shader object.
+	// Create and initialize the light shader object
 	m_LightShader = new LightShaderClass;
-
 	result = m_LightShader->Initialize(m_Direct3D->GetDevice(), hwnd);
 	if (!result)
 	{
@@ -116,25 +109,28 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 		return false;
 	}
 
-	// Set the number of lights we will use.
+	// Устанавливаем 100 источников света
 	m_numLights = 4;
-	// Create and initialize the light objects array.
 	m_Lights = new LightClass[m_numLights];
 
-	// Manually set the color and position of each light.
-	m_Lights[0].SetDiffuseColor(1.0f, 0.0f, 0.0f, 1.0f);  // Red
-	m_Lights[0].SetPosition(-3.0f, 1.0f, 3.0f);
+	for (int i = 0; i < m_numLights; i++)
+	{
+		// Случайный цвет
+		float r = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+		float g = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+		float b = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+		m_Lights[i].SetDiffuseColor(r, g, b, 1.0f);
 
-	m_Lights[1].SetDiffuseColor(0.0f, 1.0f, 0.0f, 1.0f);  // Green
-	m_Lights[1].SetPosition(3.0f, 1.0f, 3.0f);
+		// Случайная начальная позиция в пределах сцены
+		float x = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 20.0f - 10.0f;
+		float y = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 10.0f;
+		float z = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 20.0f - 10.0f;
+		m_Lights[i].SetPosition(x, y, z);
 
-	m_Lights[2].SetDiffuseColor(0.0f, 0.0f, 1.0f, 1.0f);  // Blue
-	m_Lights[2].SetPosition(-3.0f, 1.0f, -3.0f);
-
-	m_Lights[3].SetDiffuseColor(1.0f, 1.0f, 1.0f, 1.0f);  // White
-	m_Lights[3].SetPosition(3.0f, 1.0f, -3.0f);
-
-
+		// Параметры затухания
+		m_Lights[i].SetAttenuation(0.01f, 0.01f, 0.01f);
+		m_Lights[i].SetRange(250.0f);
+	}
 
 	return true;
 }
@@ -383,36 +379,42 @@ XMFLOAT3 RenderManager::GetCameraDirection()
 
 bool RenderManager::Render(HWND hwnd)
 {
-	timeGame += 0.0001f;
+	timeGame += 0.016f; // Примерно 60 FPS
 
 	XMMATRIX worldMatrix, viewMatrix, projectionMatrix;
-
-	XMFLOAT4 diffuseColor[4], lightPosition[4];
-	int i;
-
+	XMFLOAT4 diffuseColor[4], lightPosition[4], lightAttenuation[4];
 	bool result;
 
-	m_Direct3D->BeginScene(1.0f, 1.0f, 1.0f, 0.0f);
+	// Начать сцену
+	m_Direct3D->BeginScene(1.0f, 1.0f, 1.0f, 1.0f);
 
+	// Обновить камеру
 	m_Camera->Render();
 	m_Direct3D->GetWorldMatrix(worldMatrix);
 	m_Camera->GetViewMatrix(viewMatrix);
 	m_Direct3D->GetProjectionMatrix(projectionMatrix);
 
-	// Get the light properties.
-	for (i = 0; i < m_numLights; i++)
+	for (int i = 0; i < m_numLights; i++)
 	{
-		// Create the diffuse color array from the four light colors.
-		diffuseColor[i] = m_Lights[i].GetDiffuseColor();
+		XMFLOAT4 pos = m_Lights[i].GetPosition();
+		float amplitude = 0.5f;
+		float speed = 1.0f + static_cast<float>(i) * 0.02f;
+		pos.z += sinf(timeGame * speed) * amplitude;
+		m_Lights[i].SetPosition(pos.x, pos.y, pos.z);
 
-		// Create the light position array from the four light positions.
+		diffuseColor[i] = m_Lights[i].GetDiffuseColor();
 		lightPosition[i] = m_Lights[i].GetPosition();
+		XMFLOAT3 att = m_Lights[i].GetAttenuation();
+		lightAttenuation[i] = XMFLOAT4(att.x, att.y, att.z, m_Lights[i].GetRange());
 	}
 
 	UpdateCameraPosition();
 
-	for (int i = 0; i < 10; i++) {
-		if (!Barrel[i]->IsAttached() && Planet->CheckCollisionSphere(Barrel[i])) {
+	// Рендеринг бочек
+	for (int i = 0; i < 10; i++)
+	{
+		if (!Barrel[i]->IsAttached() && Planet->CheckCollisionSphere(Barrel[i]))
+		{
 			Barrel[i]->SetAttached(true);
 
 			XMFLOAT3 planetPos = Planet->GetPosition();
@@ -427,7 +429,8 @@ bool RenderManager::Render(HWND hwnd)
 
 			// Нормализуем вектор направления
 			float length = sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
-			if (length > 0.0f) {
+			if (length > 0.0f)
+			{
 				direction.x /= length;
 				direction.y /= length;
 				direction.z /= length;
@@ -446,7 +449,8 @@ bool RenderManager::Render(HWND hwnd)
 
 			// Получаем текущую матрицу вращения планеты
 			XMMATRIX planetRotation = Planet->GetRotationMatrix();
-			if (XMMatrixIsIdentity(planetRotation)) {
+			if (XMMatrixIsIdentity(planetRotation))
+			{
 				planetRotation = XMMatrixIdentity();
 			}
 
@@ -463,7 +467,8 @@ bool RenderManager::Render(HWND hwnd)
 
 			// Сохраняем начальную матрицу вращения бочки
 			XMMATRIX barrelRotation = Barrel[i]->GetRotationMatrix();
-			if (XMMatrixIsIdentity(barrelRotation)) {
+			if (XMMatrixIsIdentity(barrelRotation))
+			{
 				barrelRotation = XMMatrixIdentity();
 			}
 			Barrel[i]->SetInitialRotation(barrelRotation);
@@ -477,13 +482,15 @@ bool RenderManager::Render(HWND hwnd)
 
 			Barrel[i]->SetOffset(globalOffset);
 		}
-		else if (Barrel[i]->IsAttached()) {
+		else if (Barrel[i]->IsAttached())
+		{
 			XMFLOAT3 planetPos = Planet->GetPosition();
 			XMFLOAT3 localOffset = Barrel[i]->GetLocalOffset();
 
 			// Получаем текущую матрицу вращения планеты
 			XMMATRIX planetRotation = Planet->GetRotationMatrix();
-			if (XMMatrixIsIdentity(planetRotation)) {
+			if (XMMatrixIsIdentity(planetRotation))
+			{
 				planetRotation = XMMatrixIdentity();
 			}
 
@@ -502,7 +509,8 @@ bool RenderManager::Render(HWND hwnd)
 
 			// Получаем начальную матрицу вращения бочки
 			XMMATRIX initialBarrelRotation = Barrel[i]->GetInitialRotation();
-			if (XMMatrixIsIdentity(initialBarrelRotation)) {
+			if (XMMatrixIsIdentity(initialBarrelRotation))
+			{
 				initialBarrelRotation = XMMatrixIdentity();
 			}
 
@@ -519,7 +527,8 @@ bool RenderManager::Render(HWND hwnd)
 			Barrel[i]->SetRotationMatrix(barrelRotation);
 		}
 
-		if (Barrel[i]) {
+		if (Barrel[i])
+		{
 			XMFLOAT3 localPosition = Barrel[i]->GetPosition();
 			float x = localPosition.x;
 			float y = localPosition.y;
@@ -535,11 +544,12 @@ bool RenderManager::Render(HWND hwnd)
 				m_Direct3D->GetDeviceContext(),
 				Barrel[i]->GetIndexCount(),
 				modelMatrix,
-				viewMatrix, 
-				projectionMatrix, 
-				Barrel[i]->GetTexture(), 
-				diffuseColor, 
-				lightPosition
+				viewMatrix,
+				projectionMatrix,
+				Barrel[i]->GetTexture(),
+				diffuseColor,
+				lightPosition,
+				lightAttenuation
 			);
 
 			if (!result) return false;
@@ -573,14 +583,15 @@ bool RenderManager::Render(HWND hwnd)
 			projectionMatrix,
 			Floor->GetTexture(),
 			diffuseColor,
-			lightPosition
+			lightPosition,
+			lightAttenuation
 		);
 
 		if (!result) return false;
 		worldMatrix = XMMatrixIdentity();
 	}
 
-
+	// Рендеринг планеты
 	if (Planet)
 	{
 		XMFLOAT3 localPosition = Planet->GetPosition();
@@ -606,14 +617,15 @@ bool RenderManager::Render(HWND hwnd)
 			projectionMatrix,
 			Planet->GetTexture(),
 			diffuseColor,
-			lightPosition
+			lightPosition,
+			lightAttenuation
 		);
 
 		if (!result) return false;
 		worldMatrix = XMMatrixIdentity();
 	}
 
-	// Конец сцены
+	// Завершить сцену
 	m_Direct3D->EndScene();
 
 	return true;
