@@ -110,7 +110,7 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 	}
 
 	// Устанавливаем 100 источников света
-	m_numLights = 30;
+	m_numLights = 100;
 	m_Lights = new LightClass[m_numLights];
 
 	for (int i = 0; i < m_numLights; i++)
@@ -122,14 +122,14 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 		m_Lights[i].SetDiffuseColor(r, g, b, 1.0f);
 
 		// Случайная начальная позиция в пределах сцены
-		float x = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 20.0f - 10.0f;
-		float y = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 10.0f;
-		float z = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 20.0f - 10.0f;
+		float x = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 80.0f - 40;
+		float y = 2.6f;
+		float z = -40.0f;
 		m_Lights[i].SetPosition(x, y, z);
 
 		// Параметры затухания
-		m_Lights[i].SetAttenuation(0.4f, 0.4f, 0.4f);
-		m_Lights[i].SetRange(20.0f);
+		m_Lights[i].SetAttenuation(0.12f, 0.12f, 0.12f);
+		m_Lights[i].SetRange(170.0f);
 	}
 
 	return true;
@@ -382,7 +382,7 @@ bool RenderManager::Render(HWND hwnd)
 	timeGame += 0.016f; // Примерно 60 FPS
 
 	XMMATRIX worldMatrix, viewMatrix, projectionMatrix;
-	XMFLOAT4 diffuseColor[30], lightPosition[30], lightAttenuation[30];
+	XMFLOAT4 diffuseColor[100], lightPosition[100], lightAttenuation[100];
 	bool result;
 
 	// Начать сцену
@@ -397,8 +397,8 @@ bool RenderManager::Render(HWND hwnd)
 	for (int i = 0; i < m_numLights; i++)
 	{
 		XMFLOAT4 pos = m_Lights[i].GetPosition();
-		float amplitude = 0.5f;
-		float speed = 1.0f + static_cast<float>(i) * 0.02f;
+		float amplitude = 2.5f;
+		float speed = 0.1f + static_cast<float>(i) * 0.02f;
 		pos.z += sinf(timeGame * speed) * amplitude;
 		m_Lights[i].SetPosition(pos.x, pos.y, pos.z);
 

@@ -383,7 +383,7 @@ void LightShaderClass::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND h
 bool LightShaderClass::SetShaderParameters(ID3D11DeviceContext* deviceContext, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
 	ID3D11ShaderResourceView* texture, XMFLOAT4 diffuseColor[], XMFLOAT4 lightPosition[], XMFLOAT4 lightAttenuation[])
 {
-	int NUM_LIGHTS = 30;
+	int NUM_LIGHTS = 100;
 
 	HRESULT result;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;

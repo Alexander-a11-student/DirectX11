@@ -1,4 +1,4 @@
-#define NUM_LIGHTS 30
+#define NUM_LIGHTS 100
 
 Texture2D shaderTexture : register(t0);
 SamplerState SampleType : register(s0);

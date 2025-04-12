@@ -20,17 +20,17 @@ private:
 
     struct LightColorBufferType
     {
-        XMFLOAT4 diffuseColor[30];
+        XMFLOAT4 diffuseColor[100];
     };
 
     struct LightPositionBufferType
     {
-        XMFLOAT4 lightPosition[30];
+        XMFLOAT4 lightPosition[100];
     };
 
     struct LightAttenuationBufferType
     {
-        XMFLOAT4 attenuation[30];
+        XMFLOAT4 attenuation[100];
     };
 
 public:
