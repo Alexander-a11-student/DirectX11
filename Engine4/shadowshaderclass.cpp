@@ -14,6 +14,8 @@ ShadowShaderClass::ShadowShaderClass()
 	m_sampleStateWrap = 0;
 	m_lightPositionBuffer = 0;
 	m_lightBuffer = 0;
+
+	m_projectiveTexture = 0; // Инициализируем указатель
 }
 
 
@@ -68,16 +70,18 @@ void ShadowShaderClass::Shutdown()
 }
 
 
-bool ShadowShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
-	XMMATRIX lightViewMatrix, XMMATRIX lightProjectionMatrix, ID3D11ShaderResourceView* texture, ID3D11ShaderResourceView* depthMapTexture,
-	XMFLOAT4 ambientColor, XMFLOAT4 diffuseColor, XMFLOAT3 lightPosition, float bias)
+bool ShadowShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix,
+	XMMATRIX projectionMatrix, XMMATRIX lightViewMatrix, XMMATRIX lightProjectionMatrix,
+	ID3D11ShaderResourceView* texture, ID3D11ShaderResourceView* depthMapTexture,
+	ID3D11ShaderResourceView* projectiveTexture, XMFLOAT4 ambientColor, XMFLOAT4 diffuseColor,
+	XMFLOAT3 lightPosition, float bias)
 {
 	bool result;
 
 
-	// Set the shader parameters that it will use for rendering.
-	result = SetShaderParameters(deviceContext, worldMatrix, viewMatrix, projectionMatrix, lightViewMatrix, lightProjectionMatrix, texture, depthMapTexture,
-		ambientColor, diffuseColor, lightPosition, bias);
+	result = SetShaderParameters(deviceContext, worldMatrix, viewMatrix, projectionMatrix, lightViewMatrix, lightProjectionMatrix,
+		texture, depthMapTexture, projectiveTexture, ambientColor, diffuseColor, lightPosition, bias);
+
 	if (!result)
 	{
 		return false;
@@ -393,9 +397,11 @@ void ShadowShaderClass::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND 
 }
 
 
-bool ShadowShaderClass::SetShaderParameters(ID3D11DeviceContext* deviceContext, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix,
-	XMMATRIX lightViewMatrix, XMMATRIX lightProjectionMatrix, ID3D11ShaderResourceView* texture, ID3D11ShaderResourceView* depthMapTexture,
-	XMFLOAT4 ambientColor, XMFLOAT4 diffuseColor, XMFLOAT3 lightPosition, float bias)
+bool ShadowShaderClass::SetShaderParameters(ID3D11DeviceContext* deviceContext, XMMATRIX worldMatrix, XMMATRIX viewMatrix,
+	XMMATRIX projectionMatrix, XMMATRIX lightViewMatrix, XMMATRIX lightProjectionMatrix,
+	ID3D11ShaderResourceView* texture, ID3D11ShaderResourceView* depthMapTexture,
+	ID3D11ShaderResourceView* projectiveTexture, XMFLOAT4 ambientColor, XMFLOAT4 diffuseColor,
+	XMFLOAT3 lightPosition, float bias)
 {
 	HRESULT result;
 	D3D11_MAPPED_SUBRESOURCE mappedResource;
@@ -489,6 +495,7 @@ bool ShadowShaderClass::SetShaderParameters(ID3D11DeviceContext* deviceContext, 
 	// Set shader texture resources in the pixel shader.
 	deviceContext->PSSetShaderResources(0, 1, &texture);
 	deviceContext->PSSetShaderResources(1, 1, &depthMapTexture);
+	deviceContext->PSSetShaderResources(2, 1, &projectiveTexture); // Добавляем проекционную текстуру
 
 	return true;
 }

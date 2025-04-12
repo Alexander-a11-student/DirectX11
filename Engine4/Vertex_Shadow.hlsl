@@ -13,6 +13,7 @@ cbuffer MatrixBuffer
     matrix projectionMatrix;
     matrix lightViewMatrix;
     matrix lightProjectionMatrix;
+    
 };
 
 cbuffer LightPositionBuffer

@@ -12,8 +12,8 @@
 #include "DirectX.h"
 #include "cameraclass.h" 
 #include "modelclass.h" 
-//#include "colorshaderclass.h" 
-//#include "textureshaderclass.h"
+
+
 #include <cstdlib>
 #include <ctime>
 #include <algorithm>
@@ -25,9 +25,10 @@
 #include "LightClass.h"
 
 #include "rendertextureclass.h"
-#include "displayplaneclass.h"
 #include "depthshaderclass.h" 
 #include "shadowshaderclass.h" 
+
+#include "textureclass.h" // Добавляем заголовок для TextureClass
 
 
 /////////////
@@ -118,6 +119,8 @@ private:
 
 
 	float m_shadowMapBias;
+
+	TextureClass* m_projectiveTexture; // Указатель на TextureClass для проекционной текстуры
 
 };
 

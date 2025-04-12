@@ -9,8 +9,9 @@ RenderManager::RenderManager()
 	m_Camera = 0;
 	m_Light = 0;
 	m_DepthShader = 0;
-
-
+	m_ShadowShader = 0;
+	m_RenderTexture = 0;
+	m_projectiveTexture = 0; // Инициализируем указатель
 }
 RenderManager::RenderManager(const RenderManager& other)
 {
@@ -109,13 +110,12 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 	m_Light->SetAmbientColor(0.15f, 0.15f, 0.15f, 1.0f);
 	m_Light->SetDiffuseColor(1.0f, 1.0f, 1.0f, 1.0f);
 	m_Light->SetPosition(-8.5f, 5.0f, -10.0f);
-	m_Light->SetLookAt(0.0f, 0.0f, 0.0f);
+	m_Light->SetLookAt(0.0f, -80.0f, 0.0f);
+	m_Light->GenerateViewMatrix();
 	m_Light->GenerateOrthoMatrix(60.0f, 60.0f, 0.1f, 50.0f);
 
 
-	//m_Light->SetDirection(1.0f, 0.0f, 1.0f);
-	//m_Light->SetSpecularColor(1.0f, 1.0f, 1.0f, 1.0f);
-	//m_Light->SetSpecularPower(50.0f);
+
 
 	// Создаем и инициализируем объект рендеринга текстуры. 
 	m_RenderTexture = new RenderTextureClass;
@@ -145,6 +145,18 @@ bool RenderManager::Initialize(int screenWidth, int screenHeight, HWND hwnd)
 	if (!result)
 	{
 		MessageBox(hwnd, L"Could not initialize the shadow shader object.", L"Error", MB_OK);
+		return false;
+	}
+
+
+	// Загрузка проекционной текстуры
+	char projectiveTextureFilename[128];
+	strcpy_s(projectiveTextureFilename, "../Engine4/Border2.tga");
+	m_projectiveTexture = new TextureClass;
+	result = m_projectiveTexture->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), projectiveTextureFilename);
+	if (!result)
+	{
+		MessageBox(hwnd, L"Could not load projective texture.", L"Error", MB_OK);
 		return false;
 	}
 
@@ -493,6 +505,7 @@ bool RenderManager::Render(HWND hwnd)
 			lightProjectionMatrix,
 			Floor->GetTexture(),
 			m_RenderTexture->GetShaderResourceView(),
+			m_projectiveTexture->GetTexture(), // Используем TextureClass
 			m_Light->GetAmbientColor(),
 			m_Light->GetDiffuseColor(),
 			m_Camera->GetPosition(),
@@ -530,6 +543,7 @@ bool RenderManager::Render(HWND hwnd)
 			lightProjectionMatrix,
 			Planet->GetTexture(),
 			m_RenderTexture->GetShaderResourceView(),
+			m_projectiveTexture->GetTexture(), // Используем TextureClass
 			m_Light->GetAmbientColor(),
 			m_Light->GetDiffuseColor(),
 			m_Camera->GetPosition(),
@@ -671,6 +685,7 @@ bool RenderManager::Render(HWND hwnd)
 				lightProjectionMatrix,
 				Barrel[i]->GetTexture(),
 				m_RenderTexture->GetShaderResourceView(),
+				m_projectiveTexture->GetTexture(), // Используем TextureClass
 				m_Light->GetAmbientColor(),
 				m_Light->GetDiffuseColor(),
 				m_Camera->GetPosition(),
@@ -718,64 +733,65 @@ bool RenderManager::Update(HWND hwnd)
 
 void RenderManager::Shutdown()
 {
-	// Освободите объект шейдера тени. 
+	if (m_projectiveTexture)
+	{
+		m_projectiveTexture->Shutdown();
+		delete m_projectiveTexture;
+		m_projectiveTexture = 0;
+	}
 	if (m_ShadowShader)
 	{
 		m_ShadowShader->Shutdown();
 		delete m_ShadowShader;
 		m_ShadowShader = 0;
 	}
-
-	// Освободите объект шейдера глубины. 
 	if (m_DepthShader)
 	{
 		m_DepthShader->Shutdown();
 		delete m_DepthShader;
 		m_DepthShader = 0;
 	}
-
-	// Освобождаем объект рендеринга в текстуру. 
 	if (m_RenderTexture)
 	{
 		m_RenderTexture->Shutdown();
 		delete m_RenderTexture;
 		m_RenderTexture = 0;
 	}
-	// Release the light object.
 	if (m_Light)
-	{	
+	{
 		delete m_Light;
 		m_Light = 0;
+	}
+	if (Floor)
+	{
+		Floor->Shutdown();
+		delete Floor;
+		Floor = 0;
+	}
+	if (Planet)
+	{
+		delete Planet;
 	}
 
 	for (int i = 0; i < 10; i++)
 	{
 		if (Barrel[i])
-		{
-			Barrel[i]->Shutdown();
 			delete Barrel[i];
-			Barrel[i] = nullptr;
-		}
+
 	}
+
 	if (m_Camera)
 	{
 		delete m_Camera;
 		m_Camera = 0;
 	}
-
-	if (Planet) {
-		Planet->Shutdown();
-		delete Planet;
-		Planet = 0;
-	}
-
 	if (m_Direct3D)
 	{
 		m_Direct3D->Shutdown();
 		delete m_Direct3D;
 		m_Direct3D = 0;
 	}
-	return;
+
 }
 
 
